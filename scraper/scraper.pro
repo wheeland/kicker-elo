@@ -10,7 +10,6 @@ SOURCES += \
     database.cpp \
     league.cpp \
     scrapeutil.cpp \
-    pretty.cpp \
     \
     gumbo-parser/src/attribute.c \
     gumbo-parser/src/char_ref.c \
@@ -28,8 +27,7 @@ HEADERS += \
     downloader.hpp \
     database.hpp \
     league.hpp \
-    scrapeutil.hpp \
-    pretty.hpp
+    scrapeutil.hpp
 
 INCLUDEPATH += \
     gumbo-parser/src/

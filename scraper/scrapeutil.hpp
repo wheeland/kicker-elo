@@ -21,4 +21,6 @@ QString getFirstText(GumboElement *elem);
 
 QByteArray attributeValue(GumboElement *elem, const QByteArray &name);
 
+void prettyPrint(GumboOutput *output);
+
 } // namespace ScrapeUtil

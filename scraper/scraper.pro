@@ -2,7 +2,7 @@ TARGET = scraper
 CONFIG += c++11
 TEMPLATE = app
 
-QT += core network
+QT += core network sql
 
 SOURCES += \
     main.cpp \

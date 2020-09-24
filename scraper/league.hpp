@@ -3,4 +3,4 @@
 #include "downloader.hpp"
 #include "database.hpp"
 
-void scrapeLeageGame(Database *db, GumboOutput *output);
+void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output);

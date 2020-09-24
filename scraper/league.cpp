@@ -5,7 +5,7 @@
 
 using namespace ScrapeUtil;
 
-void scrapeLeageGame(Database *db, GumboOutput *output)
+void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
 {
     #define CHECK(condition, message) if (!(condition)) { qWarning() << message; continue; }
 
@@ -64,6 +64,8 @@ void scrapeLeageGame(Database *db, GumboOutput *output)
         return;
     }
 
+    const int competitionId = db->addCompetition(tfvbId, false, competitionName, competitionDateTime);
+
     //
     // collect root-level match elements
     //
@@ -75,8 +77,8 @@ void scrapeLeageGame(Database *db, GumboOutput *output)
     //
     // for each match, extract players + score
     //
-    for (int i = 0; i < matchNodes.size(); ++i) {
-        GumboElement *matchNode = matchNodes[i];
+    for (int pos = 0; pos < matchNodes.size(); ++pos) {
+        GumboElement *matchNode = matchNodes[pos];
 
         const QVector<GumboElement*> tds = collectElements(matchNode, GUMBO_TAG_TD);
         const QVector<GumboElement*> playerLinks = collectElements(matchNode, GUMBO_TAG_A);
@@ -120,6 +122,11 @@ void scrapeLeageGame(Database *db, GumboOutput *output)
         for (int i = 0; i < playerLinks.size(); ++i) {
             db->addPlayer(playerIds[i], playerFirstNames[i], playerLastNames[i]);
         }
+
+        if (playerLinks.size() == 2)
+            db->addMatch(competitionId, pos, score1, score2, playerIds[0], playerIds[1]);
+        else if (playerLinks.size() == 4)
+            db->addMatch(competitionId, pos, score1, score2, playerIds[0], playerIds[1], playerIds[2], playerIds[3]);
     }
 
     #undef CHECK

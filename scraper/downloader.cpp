@@ -7,6 +7,7 @@ Downloader::Downloader(QObject *parent)
     : QObject(parent)
     , m_manager(new QNetworkAccessManager(this))
 {
+    QTimer::singleShot(0, this, &Downloader::maybeStartDownloads);
 }
 
 void Downloader::maybeStartDownloads()

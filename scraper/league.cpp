@@ -8,12 +8,22 @@ using namespace ScrapeUtil;
 QVector<LeagueGame> scrapeLeagueSeason(Database *db, GumboOutput *output)
 {
     QVector<LeagueGame> ret;
+    QVector<int> doneIds;
 
     for (GumboElement *elem : collectElements(output->root, GUMBO_TAG_A)) {
-        const QString href = QString::fromUtf8(attributeValue(elem, "href"));
+        QString href = QString::fromUtf8(attributeValue(elem, "href"));
+
         if (href.contains("begegnung_spielplan")) {
             const int id = href.split("&id=").last().toInt();
+
+            if (doneIds.contains(id))
+                continue;
+
+            if (!href.startsWith("https://tfvb.de"))
+                href = QString("https://tfvb.de") + href;
+
             ret << LeagueGame{href, id};
+            doneIds << id;
         }
     }
 
@@ -54,7 +64,7 @@ void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
         if (texts.size() != 1)
             continue;
         const QStringList parts = texts.first().trimmed().split(", ");
-        if (parts.size() != 3)
+        if (parts.size() < 3)
             continue;
 
         const QStringList dateTimeParts = parts[1].split(" ");
@@ -98,10 +108,10 @@ void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
         const QVector<GumboElement*> tds = collectElements(matchNode, GUMBO_TAG_TD);
         const QVector<GumboElement*> playerLinks = collectElements(matchNode, GUMBO_TAG_A);
 
-        CHECK(tds.size() == 6, "Wrong number of tds in match element");
+        CHECK(tds.size() == 6 || tds.size() == 4, "Wrong number of tds in match element");
         CHECK(playerLinks.size() == 2 || playerLinks.size() == 4, "Invalid player link count");
 
-        const QString scoreStr = getFirstText(tds[3]);
+        const QString scoreStr = getFirstText(tds[tds.size() / 2]);
         const QStringList scores = scoreStr.split(":");
         CHECK(scores.size() == 2, "Invalid score string");
         bool score1ok, score2ok;

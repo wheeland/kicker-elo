@@ -24,7 +24,7 @@ Database::~Database()
 
 }
 
-void Database::checkQueryStatus(const QSqlQuery &query)
+void Database::checkQueryStatus(const QSqlQuery &query) const
 {
     if (query.lastError().type() != QSqlError::NoError) {
         qWarning() << "SQL Error:" << query.lastError();
@@ -124,6 +124,28 @@ int Database::addCompetition(int tfvbId, bool tournament, const QString &name, Q
     m_competitions[lastId + 1] = Competition{lastId + 1, tfvbId, tournament, name, dt};
 
     return lastId + 1;
+}
+
+int Database::competitionGameCount(int tfvbId, bool tournament)
+{
+    int id = -1;
+    for (auto it = m_competitions.begin(); it != m_competitions.end(); ++it) {
+        if (it->tfvbId == tfvbId && it->tournament == tournament) {
+            id = it->id;
+            break;
+        }
+    }
+
+    if (id < 0)
+        return 0;
+
+    int count = 0;
+    for (auto it = m_matches.cbegin(), end = m_matches.cend(); it != end; ++it) {
+        if (it->competition == id)
+            ++count;
+    }
+
+    return count;
 }
 
 void Database::addPlayer(int id, const QString &firstName, const QString &lastName)

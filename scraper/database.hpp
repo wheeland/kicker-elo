@@ -14,6 +14,7 @@ public:
     ~Database();
 
     int addCompetition(int tfvbId, bool tournament, const QString &name, QDateTime dt);
+    int competitionGameCount(int tfvbId, bool tournament);
 
     void addPlayer(int id, const QString &firstName, const QString &lastName);
     void addMatch(int competition, int position, int score1, int score2, int p1, int p2);
@@ -29,7 +30,7 @@ private:
     QSqlQuery m_insertCompetitionQuery;
     QSqlQuery m_insertMatchQuery;
 
-    void checkQueryStatus(const QSqlQuery &query);
+    void checkQueryStatus(const QSqlQuery &query) const;
 
     struct Player {
         int id;

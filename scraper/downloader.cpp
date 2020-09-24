@@ -8,11 +8,21 @@ Downloader::Downloader(QObject *parent)
 {
 }
 
+void Downloader::maybeStartDownloads()
+{
+    while (m_activeDownloads.size() < m_maxDownloads && m_pendingDownloads.size() > 0) {
+        const PendingDownload pending = m_pendingDownloads.takeFirst();
+
+        QNetworkReply *reply = m_manager->get(pending.request);
+        connect(reply, &QNetworkReply::finished, this, &Downloader::onReplyFinished);
+        m_activeDownloads[reply] = pending.callback;
+    }
+}
+
 void Downloader::request(const QNetworkRequest &request, const DownloadCallback &cb)
 {
-    QNetworkReply *reply = m_manager->get(request);
-    connect(reply, &QNetworkReply::finished, this, &Downloader::onReplyFinished);
-    m_downloads[reply] = cb;
+    m_pendingDownloads << PendingDownload{request, cb};
+    maybeStartDownloads();
 }
 
 void Downloader::onReplyFinished()
@@ -21,17 +31,19 @@ void Downloader::onReplyFinished()
     if (!reply)
         return;
 
-    const auto it = m_downloads.find(reply);
-    if (it == m_downloads.end())
+    const auto it = m_activeDownloads.find(reply);
+    if (it == m_activeDownloads.end())
         return;
 
-    QNetworkReply::NetworkError error = reply->error();
+    const DownloadCallback cb = *it;
+    m_activeDownloads.erase(it);
+
+    maybeStartDownloads();
+
+    const QNetworkReply::NetworkError error = reply->error();
     const QByteArray data = reply->readAll();
 
     GumboOutput* output = gumbo_parse(data.data());
-
-    (*it)(error, output);
-    m_downloads.erase(it);
-
+    cb(error, output);
     gumbo_destroy_output(&kGumboDefaultOptions, output);
 }

@@ -21,6 +21,16 @@ private slots:
     void onReplyFinished();
 
 private:
+    void maybeStartDownloads();
+
     QNetworkAccessManager *m_manager;
-    QHash<QNetworkReply*, DownloadCallback> m_downloads;
+    int m_maxDownloads = 10;
+
+    struct PendingDownload
+    {
+        const QNetworkRequest request;
+        const DownloadCallback callback;
+    };
+    QVector<PendingDownload> m_pendingDownloads;
+    QHash<QNetworkReply*, DownloadCallback> m_activeDownloads;
 };

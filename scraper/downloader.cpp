@@ -1,6 +1,7 @@
 #include "downloader.hpp"
 
 #include <QNetworkReply>
+#include <QTimer>
 
 Downloader::Downloader(QObject *parent)
     : QObject(parent)
@@ -10,11 +11,16 @@ Downloader::Downloader(QObject *parent)
 
 void Downloader::maybeStartDownloads()
 {
+    if (m_activeDownloads.isEmpty() && m_pendingDownloads.isEmpty()) {
+        emit completed();
+        return;
+    }
+
     while (m_activeDownloads.size() < m_maxDownloads && m_pendingDownloads.size() > 0) {
         const PendingDownload pending = m_pendingDownloads.takeFirst();
 
         QNetworkReply *reply = m_manager->get(pending.request);
-        connect(reply, &QNetworkReply::finished, this, &Downloader::onReplyFinished);
+        connect(reply, &QNetworkReply::finished, this, &Downloader::onReplyFinished, Qt::QueuedConnection);
         m_activeDownloads[reply] = pending.callback;
     }
 }
@@ -38,12 +44,12 @@ void Downloader::onReplyFinished()
     const DownloadCallback cb = *it;
     m_activeDownloads.erase(it);
 
-    maybeStartDownloads();
-
     const QNetworkReply::NetworkError error = reply->error();
     const QByteArray data = reply->readAll();
 
     GumboOutput* output = gumbo_parse(data.data());
     cb(error, output);
     gumbo_destroy_output(&kGumboDefaultOptions, output);
+
+    QTimer::singleShot(0, this, &Downloader::maybeStartDownloads);
 }

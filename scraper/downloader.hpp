@@ -17,12 +17,14 @@ public:
 
     void request(const QNetworkRequest &request, const DownloadCallback &dcb);
 
+signals:
+    void completed();
+
 private slots:
     void onReplyFinished();
-
-private:
     void maybeStartDownloads();
 
+private:
     QNetworkAccessManager *m_manager;
     int m_maxDownloads = 10;
 

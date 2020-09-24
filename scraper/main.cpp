@@ -1,5 +1,6 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
+#include <QNetworkCookie>
 #include <QFile>
 #include <QDebug>
 
@@ -41,14 +42,16 @@ int main(int argc, char **argv)
     parser.addPositionalArgument("sqlite", "Path to SQLite database");
     QCommandLineOption leagueSourcesOption({"league-sources", "l"}, "Sources for league games", "path");
     parser.addOption(leagueSourcesOption);
+    QCommandLineOption tournamentSeasonOption({"tournament-season", "t"}, "Season to query for tournaments (1-15)", "15");
+    parser.addOption(tournamentSeasonOption);
     parser.process(app);
     if (parser.positionalArguments().isEmpty())
         parser.showHelp();
 
     const QString sqlitePath = parser.positionalArguments().first();
 
-    Downloader downloader;
-    Database database(sqlitePath);
+    Downloader *downloader = new Downloader();
+    Database *database = new Database(sqlitePath);
 
     //
     // Parse and scrape league source files
@@ -57,37 +60,66 @@ int main(int argc, char **argv)
     const QStringList leagueSources = readSourceFiles(leagueSourceFiles);
     qDebug() << "Scraping" << leagueSources.size() << "League URLs";
 
-//    for (const QString &source : leagueSources) {
-//        const auto cb = [&,source] (QNetworkReply::NetworkError err, GumboOutput *out) {
-//            const QVector<LeagueGame> games = scrapeLeagueSeason(&database, out);
-//            qDebug() << "Scraping" << games.size() << "games from League URL" << source;
+    for (const QString &source : leagueSources) {
+        const auto cb = [=] (QNetworkReply::NetworkError err, GumboOutput *out) {
+            const QVector<LeagueGame> games = scrapeLeagueSeason(out);
+            qDebug() << "Scraping" << games.size() << "games from League URL" << source;
 
-//            for (const LeagueGame &game : scrapeLeagueSeason(&database, out)) {
-//                const int count = database.competitionGameCount(game.tfvbId, false);
-//                if (count > 0) {
-//                    qDebug() << "Skipping" << game.tfvbId << game.url << "(from" << source << "): has" << count << "matches already";
-//                    continue;
-//                }
+            for (const LeagueGame &game : scrapeLeagueSeason(out)) {
+                const int count = database->competitionGameCount(game.tfvbId, false);
+                if (count > 0) {
+                    qDebug() << "Skipping" << game.tfvbId << game.url << "(from" << source << "): has" << count << "matches already";
+                    continue;
+                }
 
-//                downloader.request(QNetworkRequest(game.url), [&,source,game](QNetworkReply::NetworkError err, GumboOutput *out) {
-//                    qDebug() << "Scraping" << game.tfvbId << game.url << "(from" << source << ")";
-//                    scrapeLeageGame(&database, game.tfvbId, out);
-//                });
-//            }
-//        };
+                downloader->request(QNetworkRequest(game.url), [=](QNetworkReply::NetworkError err, GumboOutput *out) {
+                    qDebug() << "Scraping" << game.tfvbId << game.url << "(from" << source << ")";
+                    scrapeLeageGame(database, game.tfvbId, out);
+                });
+            }
+        };
 
-//        downloader.request(QNetworkRequest(source), cb);
-//    }
+        downloader->request(QNetworkRequest(source), cb);
+    }
 
-    const auto url1 = "https://tfvb.de/index.php/turniere?task=turnierdisziplin&id=539";
-    const auto url2 = "https://tfvb.de/index.php/turniere?task=turnierdisziplin&id=219";
-    const auto url3 = "https://tfvb.de/index.php/turniere?task=turnierdisziplinen&turnierid=63";
-    // https://tfvb.de/index.php/turniere?task=turnierdisziplin&id=219
-    downloader.request(QNetworkRequest(QUrl(url3)), [&](QNetworkReply::NetworkError err, GumboOutput *out) {
-        scrapeTournamentPage(out);
-    });
+    //
+    // Scrape tournaments. For some reason, when we send multiple requests with
+    // different sportsmanager_filter_saison_id, we get the same result all over (for the current season).
+    // might be a server-side error, so we just request one season at a time for now -_-
+    //
+    const int season = parser.value(tournamentSeasonOption).toInt();
+    if (season > 0) {
+        QNetworkRequest request(QUrl("https://tfvb.de/index.php/turniere"));
+        QNetworkCookie cookie("sportsmanager_filter_saison_id", QByteArray::number(season));
+        QList<QNetworkCookie> cookies{cookie};
+        request.setHeader(QNetworkRequest::CookieHeader, QVariant::fromValue(cookies));
 
-    QObject::connect(&downloader, &Downloader::completed, &app, &QCoreApplication::quit);
+        downloader->request(request, [=](QNetworkReply::NetworkError err, GumboOutput *out) {
+            const QStringList tournamentPages = scrapeTournamentOverview(out);
+            qDebug() << "Scraping" << tournamentPages.size() << "Tournaments from season" << season;
+
+            for (const QString &page : tournamentPages) {
+                downloader->request(QNetworkRequest(QUrl(page)), [=](QNetworkReply::NetworkError err, GumboOutput *out) {
+                    const QVector<Tournament> tournaments = scrapeTournamentPage(out);
+
+                    for (const Tournament &tnm : tournaments) {
+                        const int count = database->competitionGameCount(tnm.tfvbId, true);
+                        if (count > 0) {
+                            qDebug() << "Skipping" << tnm.tfvbId << tnm.url << "(from season" << season << "), has" << count << "matches already";
+                            continue;
+                        }
+
+                        downloader->request(QNetworkRequest(tnm.url), [=](QNetworkReply::NetworkError err, GumboOutput *out) {
+                            qDebug() << "Scraping" << tnm.tfvbId << tnm.url << "(from season" << season << ")";
+                            scrapeTournament(database, tnm.tfvbId, out);
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    QObject::connect(downloader, &Downloader::completed, &app, &QCoreApplication::quit);
 
     return app.exec();
 }

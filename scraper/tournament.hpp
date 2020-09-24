@@ -3,6 +3,8 @@
 #include "downloader.hpp"
 #include "database.hpp"
 
+QStringList scrapeTournamentOverview(GumboOutput *output);
+
 struct Tournament
 {
     QString url;

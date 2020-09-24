@@ -3,6 +3,24 @@
 
 using namespace ScrapeUtil;
 
+QStringList scrapeTournamentOverview(GumboOutput *output)
+{
+    QStringList ret;
+
+    for (GumboElement *elem : collectElements(output->root, GUMBO_TAG_A)) {
+        QString href = QString::fromUtf8(attributeValue(elem, "href"));
+
+        if (href.contains("task=turnierdisziplinen&turnierid=")) {
+            if (!href.startsWith("https://tfvb.de"))
+                href = QString("https://tfvb.de") + href;
+
+            ret << href;
+        }
+    }
+
+    return ret;
+}
+
 QVector<Tournament> scrapeTournamentPage(GumboOutput *output)
 {
     QVector<Tournament> ret;
@@ -25,8 +43,8 @@ QVector<Tournament> scrapeTournamentPage(GumboOutput *output)
 
 void scrapeTournament(Database *db, int tfvbId, GumboOutput *output)
 {
-    #define REQUIRE(condition, message) if (!(condition)) { qWarning() << "Tournament game" << tfvbId << ":" << message; return; }
-    #define CHECK(condition, message) if (!(condition)) { qWarning() << "Tournament game" << tfvbId << ":" << message; continue; }
+    #define REQUIRE(condition, message) if (!(condition)) { qWarning() << "Tournament" << tfvbId << ":" << message; return; }
+    #define CHECK(condition, message) if (!(condition)) { qWarning() << "Tournament" << tfvbId << ":" << message; continue; }
 
     //
     // check for the header element that contains the tournament details
@@ -47,7 +65,7 @@ void scrapeTournament(Database *db, int tfvbId, GumboOutput *output)
     // Get Tournament date + name
     //
     const QStringList parts = headerTexts.first().trimmed().split(", ");
-    REQUIRE(parts.size() > 3, "Date text invalid");
+    REQUIRE(parts.size() > 2, "Date text invalid");
     const QStringList dateTimeParts = parts[parts.size() - 2].split(" ");
     REQUIRE(dateTimeParts.size() >= 2, "Date text invalid");
     const QStringList dateParts = dateTimeParts[0].split(".");

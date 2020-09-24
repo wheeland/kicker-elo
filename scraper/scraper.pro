@@ -11,6 +11,7 @@ SOURCES += \
     league.cpp \
     tournament.cpp \
     scrapeutil.cpp \
+    rating.cpp \
     \
     gumbo-parser/src/attribute.c \
     gumbo-parser/src/char_ref.c \
@@ -29,7 +30,8 @@ HEADERS += \
     database.hpp \
     league.hpp \
     tournament.hpp \
-    scrapeutil.hpp
+    scrapeutil.hpp \
+    rating.hpp \
 
 INCLUDEPATH += \
     gumbo-parser/src/

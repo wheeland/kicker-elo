@@ -20,10 +20,16 @@ public:
     void addMatch(int competition, int position, int score1, int score2, int p1, int p2);
     void addMatch(int competition, int position, int score1, int score2, int p1a, int p1b, int p2a, int p2b);
 
+    void recompute();
+
 private:
+    void execQuery(const QString &query);
+
     void createTables();
     void createQueries();
     void readData();
+
+    void recomputeElo(const QString &table, float kLeague, float kTournament, bool singles, bool doubles);
 
     QSqlDatabase m_db;
     QSqlQuery m_insertPlayerQuery;

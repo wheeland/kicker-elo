@@ -121,5 +121,7 @@ int main(int argc, char **argv)
 
     QObject::connect(downloader, &Downloader::completed, &app, &QCoreApplication::quit);
 
+    database->recompute();
+
     return app.exec();
 }

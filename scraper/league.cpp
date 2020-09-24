@@ -5,9 +5,24 @@
 
 using namespace ScrapeUtil;
 
+QVector<LeagueGame> scrapeLeagueSeason(Database *db, GumboOutput *output)
+{
+    QVector<LeagueGame> ret;
+
+    for (GumboElement *elem : collectElements(output->root, GUMBO_TAG_A)) {
+        const QString href = QString::fromUtf8(attributeValue(elem, "href"));
+        if (href.contains("begegnung_spielplan")) {
+            const int id = href.split("&id=").last().toInt();
+            ret << LeagueGame{href, id};
+        }
+    }
+
+    return ret;
+}
+
 void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
 {
-    #define CHECK(condition, message) if (!(condition)) { qWarning() << message; continue; }
+    #define CHECK(condition, message) if (!(condition)) { qWarning() << "League game" << tfvbId << ":" << message; continue; }
 
     QString competitionName;
     QDateTime competitionDateTime;
@@ -130,6 +145,4 @@ void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
     }
 
     #undef CHECK
-
-    qWarning() << competitionName;
 }

@@ -10,6 +10,10 @@ namespace ScrapeUtil
 {
 
 using NodeFilter = std::function<bool(GumboElement*)>;
+
+GumboElement* getFirstElement(GumboNode *node, const NodeFilter &filter);
+GumboElement* getFirstElement(GumboElement *elem, const NodeFilter &filter);
+
 QVector<GumboElement*> collectElements(GumboNode *node, const NodeFilter &filter, bool recursive = false);
 QVector<GumboElement*> collectElements(GumboElement *elem, const NodeFilter &filter, bool recursive = false);
 

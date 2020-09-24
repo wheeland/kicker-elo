@@ -5,7 +5,7 @@
 
 using namespace ScrapeUtil;
 
-QVector<LeagueGame> scrapeLeagueSeason(Database *db, GumboOutput *output)
+QVector<LeagueGame> scrapeLeagueSeason(GumboOutput *output)
 {
     QVector<LeagueGame> ret;
     QVector<int> doneIds;

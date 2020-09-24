@@ -9,6 +9,7 @@ SOURCES += \
     downloader.cpp \
     database.cpp \
     league.cpp \
+    tournament.cpp \
     scrapeutil.cpp \
     \
     gumbo-parser/src/attribute.c \
@@ -27,6 +28,7 @@ HEADERS += \
     downloader.hpp \
     database.hpp \
     league.hpp \
+    tournament.hpp \
     scrapeutil.hpp
 
 INCLUDEPATH += \

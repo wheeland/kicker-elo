@@ -9,6 +9,28 @@
 namespace ScrapeUtil
 {
 
+GumboElement *getFirstElement(GumboNode *node, const NodeFilter &filter)
+{
+    if (node->type != GUMBO_NODE_ELEMENT)
+        return nullptr;
+
+    return getFirstElement(&node->v.element, filter);
+}
+
+GumboElement *getFirstElement(GumboElement *elem, const NodeFilter &filter)
+{
+    if (filter(elem))
+        return elem;
+
+    for (uint i = 0; i < elem->children.length; ++i) {
+        GumboElement *found = getFirstElement((GumboNode*) elem->children.data[i], filter);
+        if (found)
+            return found;
+    }
+
+    return nullptr;
+}
+
 static void collectElements(GumboNode *node, const NodeFilter &filter, QVector<GumboElement*> &into,  bool recursive)
 {
     if (node->type != GUMBO_NODE_ELEMENT)

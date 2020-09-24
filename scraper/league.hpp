@@ -8,6 +8,6 @@ struct LeagueGame
     QString url;
     int tfvbId;
 };
-QVector<LeagueGame> scrapeLeagueSeason(Database *db, GumboOutput *output);
+QVector<LeagueGame> scrapeLeagueSeason(GumboOutput *output);
 
 void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output);

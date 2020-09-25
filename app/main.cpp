@@ -5,14 +5,16 @@
 #include <Wt/WPushButton.h>
 #include <Wt/WText.h>
 
+#include "rankingwidget.hpp"
+#include "database.hpp"
+
 class EloApp : public Wt::WApplication
 {
 public:
     EloApp(const Wt::WEnvironment& env);
 
 private:
-    Wt::WLineEdit *nameEdit_;
-    Wt::WText *greeting_;
+    RankingWidget *m_rankingWidget;
 };
 
 EloApp::EloApp(const Wt::WEnvironment& env)
@@ -20,19 +22,13 @@ EloApp::EloApp(const Wt::WEnvironment& env)
 {
     setTitle("Hello world");
 
-    root()->addWidget(std::make_unique<Wt::WText>("Your name, please? "));
-    nameEdit_ = root()->addWidget(std::make_unique<Wt::WLineEdit>());
-    Wt::WPushButton *button = root()->addWidget(std::make_unique<Wt::WPushButton>("Greet me."));
-    root()->addWidget(std::make_unique<Wt::WBreak>());
-    greeting_ = root()->addWidget(std::make_unique<Wt::WText>());
-    auto greet = [this]{
-      greeting_->setText("Hello there, " + nameEdit_->text());
-    };
-    button->clicked().connect(greet);
+    m_rankingWidget = root()->addWidget(std::make_unique<RankingWidget>());
 }
 
 int main(int argc, char **argv)
 {
+    FoosDB::Database m_database("db2.sqlite");
+
     return Wt::WRun(argc, argv, [](const Wt::WEnvironment& env) {
       return std::make_unique<EloApp>(env);
     });

@@ -66,7 +66,7 @@ int main(int argc, char **argv)
             qDebug() << "Scraping" << games.size() << "games from League URL" << source;
 
             for (const LeagueGame &game : scrapeLeagueSeason(out)) {
-                const int count = database->competitionGameCount(game.tfvbId, false);
+                const int count = database->competitionGameCount(game.tfvbId, CompetitionType::League);
                 if (count > 0) {
                     qDebug() << "Skipping" << game.tfvbId << game.url << "(from" << source << "): has" << count << "matches already";
                     continue;
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
                     const QVector<Tournament> tournaments = scrapeTournamentPage(out);
 
                     for (const Tournament &tnm : tournaments) {
-                        const int count = database->competitionGameCount(tnm.tfvbId, true);
+                        const int count = database->competitionGameCount(tnm.tfvbId, CompetitionType::Tournament);
                         if (count > 0) {
                             qDebug() << "Skipping" << tnm.tfvbId << tnm.url << "(from season" << season << "), has" << count << "matches already";
                             continue;
@@ -119,9 +119,10 @@ int main(int argc, char **argv)
         });
     }
 
-    QObject::connect(downloader, &Downloader::completed, &app, &QCoreApplication::quit);
-
-    database->recompute();
+    QObject::connect(downloader, &Downloader::completed, [&]() {
+        database->recompute();
+        app.quit();
+    });
 
     return app.exec();
 }

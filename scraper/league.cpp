@@ -89,7 +89,7 @@ void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
         return;
     }
 
-    const int competitionId = db->addCompetition(tfvbId, false, competitionName, competitionDateTime);
+    const int competitionId = db->addCompetition(tfvbId, CompetitionType::League, competitionName, competitionDateTime);
 
     //
     // collect root-level match elements

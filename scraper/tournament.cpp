@@ -95,7 +95,7 @@ void scrapeTournament(Database *db, int tfvbId, GumboOutput *output)
         playerNameToId[name] = id;
     }
 
-    const int competitionId = db->addCompetition(tfvbId, true, competitionName, competitionDateTime);
+    const int competitionId = db->addCompetition(tfvbId, CompetitionType::Tournament, competitionName, competitionDateTime);
 
     //
     // Parse match results

@@ -13,17 +13,17 @@ SOURCES += \
     scrapeutil.cpp \
     rating.cpp \
     \
-    gumbo-parser/src/attribute.c \
-    gumbo-parser/src/char_ref.c \
-    gumbo-parser/src/error.c \
-    gumbo-parser/src/parser.c \
-    gumbo-parser/src/string_buffer.c \
-    gumbo-parser/src/string_piece.c \
-    gumbo-parser/src/tag.c \
-    gumbo-parser/src/tokenizer.c \
-    gumbo-parser/src/utf8.c \
-    gumbo-parser/src/util.c \
-    gumbo-parser/src/vector.c \
+    ../3rdparty/gumbo-parser/src/attribute.c \
+    ../3rdparty/gumbo-parser/src/char_ref.c \
+    ../3rdparty/gumbo-parser/src/error.c \
+    ../3rdparty/gumbo-parser/src/parser.c \
+    ../3rdparty/gumbo-parser/src/string_buffer.c \
+    ../3rdparty/gumbo-parser/src/string_piece.c \
+    ../3rdparty/gumbo-parser/src/tag.c \
+    ../3rdparty/gumbo-parser/src/tokenizer.c \
+    ../3rdparty/gumbo-parser/src/utf8.c \
+    ../3rdparty/gumbo-parser/src/util.c \
+    ../3rdparty/gumbo-parser/src/vector.c \
 
 HEADERS += \
     downloader.hpp \
@@ -34,4 +34,4 @@ HEADERS += \
     rating.hpp \
 
 INCLUDEPATH += \
-    gumbo-parser/src/
+    ../3rdparty/gumbo-parser/src/

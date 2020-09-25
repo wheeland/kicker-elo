@@ -16,6 +16,11 @@ link_directories("${WT_DIRECTORY}/lib")
 
 add_executable(${TARGET}
     main.cpp
+    rankingwidget.cpp
+    rankingwidget.hpp
+    database.cpp
+    database.hpp
+    database_orm.hpp
 )
 
-target_link_libraries(${TARGET} wt wthttp)
+target_link_libraries(${TARGET} wt wthttp wtdbo wtdbosqlite3)

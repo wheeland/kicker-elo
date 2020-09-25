@@ -219,9 +219,9 @@ struct RatingChange
     float ratingAfter;
 };
 
-template <class Rating, class Competition, class Match>
+template <class Rating, class Player, class Competition, class Match>
 QVector<RatingChange> computeRankings(
-        const QList<int> &playerIds,
+        const QHash<int, Player> &players,
         const QHash<int, Competition> &competitions,
         const QHash<int, Match> &matches,
         float kLeague, float kTournament,
@@ -247,40 +247,42 @@ QVector<RatingChange> computeRankings(
     // build list of players
     //
     struct RatedPlayer { int id; Rating rating; };
-    QHash<int, RatedPlayer> players;
-    for (int id : playerIds)
-        players[id] = RatedPlayer{ id, Rating() };
-
-    // ranking is a sorted list of pointers to players
-    QVector<RatedPlayer*> ranking;
+    QHash<int, RatedPlayer> playerRatings;
     for (auto it = players.begin(); it != players.end(); ++it)
-        ranking << &it.value();
+        playerRatings[it->id] = RatedPlayer{ it->id, Rating() };
 
     //
     // iterate through matches and adjust ELO
     //
-    for (const Match &match : matches)
+    for (const Match &match : sortedMatches)
     {
         const float result = (match.score1 > match.score2) ? 0.0f :
                              (match.score1 < match.score2) ? 1.0f : 0.5f;
+        const float k = competitions[match.competition].tournament ? kTournament : kLeague;
 
-        if (match.single) {
-            RatedPlayer *p1 = &players[match.p1];
-            RatedPlayer *p2 = &players[match.p2];
-            p1->rating.adjust(-result, p2->rating);
-            p2->rating.adjust(result,  p1->rating);
+        if (match.single && singles) {
+            RatedPlayer *p1 = &playerRatings[match.p1];
+            RatedPlayer *p2 = &playerRatings[match.p2];
+            const Rating r1 = p1->rating;
+            const Rating r2 = p1->rating;
+            p1->rating.adjust(k, 1.0f-result, r2);
+            p2->rating.adjust(k, result,  r1);
             ret << RatingChange{match.id, p1->id, p1->rating.abs()};
             ret << RatingChange{match.id, p2->id, p2->rating.abs()};
         }
-        else {
-            RatedPlayer *p1 = &players[match.p1];
-            RatedPlayer *p11 = &players[match.p11];
-            RatedPlayer *p2 = &players[match.p2];
-            RatedPlayer *p22 = &players[match.p22];
-            p1 ->rating.adjust(p11->rating, -result, p2->rating, p22->rating);
-            p11->rating.adjust(p1 ->rating, -result, p2->rating, p22->rating);
-            p2 ->rating.adjust(p22->rating, result,  p1->rating, p11->rating);
-            p22->rating.adjust(p2 ->rating, result,  p1->rating, p11->rating);
+        else if (doubles) {
+            RatedPlayer *p1 = &playerRatings[match.p1];
+            RatedPlayer *p11 = &playerRatings[match.p11];
+            RatedPlayer *p2 = &playerRatings[match.p2];
+            RatedPlayer *p22 = &playerRatings[match.p22];
+            const Rating r1  = p1->rating;
+            const Rating r11 = p11->rating;
+            const Rating r2  = p2->rating;
+            const Rating r22 = p22->rating;
+            p1 ->rating.adjust(k, r11, 1.0f-result, r2, r22);
+            p11->rating.adjust(k, r1,  1.0f-result, r2, r22);
+            p2 ->rating.adjust(k, r22, result,  r1, r11);
+            p22->rating.adjust(k, r2,  result,  r1, r11);
             ret << RatingChange{match.id, p1 ->id, p1 ->rating.abs()};
             ret << RatingChange{match.id, p11->id, p11->rating.abs()};
             ret << RatingChange{match.id, p2 ->id, p2 ->rating.abs()};
@@ -288,12 +290,9 @@ QVector<RatingChange> computeRankings(
         }
     }
 
-    qSort(ranking.begin(), ranking.end(), [](RatedPlayer *p1, RatedPlayer *p2) {
-        return p1->rating <= p2->rating;
-    });
-
-    for (RatedPlayer *p : ranking) {
-        qWarning() << p->id;
+    // Add current ratings as a special entry with matchId=0
+    for (auto it = playerRatings.begin(); it != playerRatings.end(); ++it) {
+        ret << RatingChange{0, it->id, it->rating.abs() };
     }
 
     return ret;
@@ -302,7 +301,7 @@ QVector<RatingChange> computeRankings(
 void Database::recomputeElo(const QString &table, float kLeague, float kTournament, bool singles, bool doubles)
 {
     QVector<RatingChange> changes = computeRankings<EloRating>(
-                m_players.keys(), m_competitions, m_matches, kLeague, kTournament, singles, doubles);
+                m_players, m_competitions, m_matches, kLeague, kTournament, singles, doubles);
 
     execQuery(QString("DELETE FROM ") + table);
 
@@ -310,13 +309,13 @@ void Database::recomputeElo(const QString &table, float kLeague, float kTourname
     QVariantList playerIds;
     QVariantList ratings;
 
-    changes.resize(10000);
-
     for (const RatingChange &change : changes) {
         matchIds << change.matchId;
         playerIds << change.playerId;
         ratings << change.ratingAfter;
     }
+
+    m_db.transaction();
 
     QSqlQuery query;
     query.prepare(QString("INSERT INTO %1 (matchId, playerId, rating) VALUES (?, ?, ?)").arg(table));
@@ -325,12 +324,14 @@ void Database::recomputeElo(const QString &table, float kLeague, float kTourname
     query.addBindValue(ratings);
     query.execBatch();
     checkQueryStatus(query);
+
+    m_db.commit();
 }
 
 
 void Database::recompute()
 {
-    recomputeElo("eloSingle", 1.0f, 2.0f, true, false);
-    recomputeElo("eloDouble", 1.0f, 2.0f, false, true);
-    recomputeElo("eloCombined", 1.0f, 2.0f, true, true);
+    recomputeElo("eloSingle", 12.0f, 24.0f, true, false);
+    recomputeElo("eloDouble", 12.0f, 24.0f, false, true);
+    recomputeElo("eloCombined", 12.0f, 24.0f, true, true);
 }

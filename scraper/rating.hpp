@@ -9,8 +9,8 @@ public:
 
     float abs() const { return m_rating; }
 
-    void adjust(float result, const EloRating &o);
-    void adjust(const EloRating &partner, float result, const EloRating &o1, const EloRating &o2);
+    void adjust(float k, float result, const EloRating &o);
+    void adjust(float k, const EloRating &partner, float result, const EloRating &o1, const EloRating &o2);
 
     bool operator<=(const EloRating &other) const { return m_rating < other.m_rating; }
 

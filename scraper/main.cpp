@@ -18,7 +18,7 @@ QStringList readSourceFiles(const QStringList &paths)
         if (file.open(QFile::ReadOnly)) {
             while (!file.atEnd()) {
                 const QString line = QString::fromUtf8(file.readLine()).trimmed();
-                if (!line.isEmpty())
+                if (!line.isEmpty() && !line.startsWith("#"))
                     ret << line;
             }
         }

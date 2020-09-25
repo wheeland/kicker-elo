@@ -93,6 +93,14 @@ void scrapeTournament(Database *db, int tfvbId, GumboOutput *output)
         const int id = href.split("&id=").last().toInt();
         const QString name = getFirstText(playerPageLink);
         playerNameToId[name] = id;
+
+        // add to database
+        const QStringList parts = name.split(", ");
+        if (parts.size() != 2) {
+            qWarning() << "Tournament" << tfvbId << ": Invalid player name";
+        } else {
+            db->addPlayer(id, parts[1], parts[0]);
+        }
     }
 
     const int competitionId = db->addCompetition(tfvbId, CompetitionType::Tournament, competitionName, competitionDateTime);

@@ -10,6 +10,7 @@ set(CMAKE_CXX_FLAGS "-std=c++14 -Wall")
 
 find_package(Wt REQUIRED)
 find_package(Boost REQUIRED)
+find_package(Qt REQUIRED SQL)
 
 include_directories("${WT_DIRECTORY}/include")
 link_directories("${WT_DIRECTORY}/lib")
@@ -23,4 +24,4 @@ add_executable(${TARGET}
     database_orm.hpp
 )
 
-target_link_libraries(${TARGET} wt wthttp wtdbo wtdbosqlite3)
+target_link_libraries(${TARGET} wt wthttp wtdbo wtdbosqlite3 Qt5Sql)

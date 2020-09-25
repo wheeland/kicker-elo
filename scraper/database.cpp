@@ -15,6 +15,7 @@ Database::Database(const QString &sqlitePath)
         qWarning() << "Error opening database:" << m_db.lastError();
     }
 
+    createTables();
     createQueries();
     readData();
 }
@@ -28,6 +29,61 @@ void Database::execQuery(const QString &query)
 {
     QSqlQuery sqlQuery(query);
     checkQueryStatus(sqlQuery);
+}
+
+void Database::createTables()
+{
+    execQuery("CREATE TABLE IF NOT EXISTS competitions ( \
+      id integer NOT NULL, \
+      tfvbId integer NOT NULL, \
+      type integer, \
+      name text, \
+      date integer, \
+      primary key (id))"
+    );
+    execQuery("CREATE TABLE IF NOT EXISTS played_matches ( \
+      id integer NOT NULL, \
+      player_id integer NOT NULL, \
+      match_id integer, \
+      primary key (id), \
+      constraint fk_played_matches_player foreign key (player_id) references players (id) deferrable initially deferred, \
+      constraint fk_played_matches_match foreign key (match_id) references matches (id) deferrable initially deferred)"
+    );
+    execQuery("CREATE TABLE IF NOT EXISTS matches ( \
+      id integer NOT NULL, \
+      competition_id integer NOT NULL, \
+      position integer, \
+      type integer, \
+      score1 integer, \
+      score2 integer, \
+      p1 integer NOT NULL, \
+      p2 integer NOT NULL, \
+      p11 integer NOT NULL, \
+      p22 integer NOT NULL, \
+      primary key (id), \
+      constraint fk_matches_competition foreign key (competition_id) references competitions (id) deferrable initially deferred)"
+    );
+    execQuery("CREATE TABLE IF NOT EXISTS players ( \
+      id integer NOT NULL, \
+      firstName text NOT NULL, \
+      lastName text NOT NULL, \
+      primary key (id))"
+    );
+    execQuery("CREATE TABLE IF NOT EXISTS elo_single ( \
+      played_match_id integer NOT NULL, \
+      rating real NOT NULL, \
+      primary key (played_match_id))"
+    );
+    execQuery("CREATE TABLE IF NOT EXISTS elo_double ( \
+      played_match_id integer NOT NULL, \
+      rating real NOT NULL, \
+      primary key (played_match_id))"
+    );
+    execQuery("CREATE TABLE IF NOT EXISTS elo_combined ( \
+      played_match_id integer NOT NULL, \
+      rating real NOT NULL, \
+      primary key (played_match_id))"
+    );
 }
 
 void Database::checkQueryStatus(const QSqlQuery &query) const
@@ -222,6 +278,10 @@ void Database::recompute()
         QVariantList pmIds;
         QVariantList ratings;
         QHash<int, EloRating> players;
+        void add(int pmid, float rating) {
+            pmIds << pmid;
+            ratings << rating;
+        }
     };
     RatingDomain singles;
     RatingDomain doubles;
@@ -237,14 +297,12 @@ void Database::recompute()
 
     const auto rateSingle = [&](int pid, int pmid, RatingDomain &domain, float res, float k, const EloRating &other) {
         domain.players[pid].adjust(k, res, other);
-        domain.pmIds << pmid;
-        domain.ratings << domain.players[pid].abs();
+        domain.add(pmid, domain.players[pid].abs());
     };
 
     const auto rateDouble = [&](int pid, int pmid, RatingDomain &domain, float res, float k, const EloRating &partner, const EloRating &o1, const EloRating &o2) {
         domain.players[pid].adjust(k, partner, res, o1, o2);
-        domain.pmIds << pmid;
-        domain.ratings << domain.players[pid].abs();
+        domain.add(pmid, domain.players[pid].abs());
     };
 
     for (const Match &match : sortedMatches) {
@@ -291,6 +349,16 @@ void Database::recompute()
             rateDouble(match.p2,  pm2id,  combined, k, result, c22, c1, c11);
             rateDouble(match.p22, pm22id, combined, k, result, c2,  c1, c11);
         }
+    }
+
+    //
+    // Store current ELOs as matchid=0
+    //
+    for (auto it = m_players.cbegin(); it != m_players.cend(); ++it) {
+        const int id = addPlayedMatch(it.key(), 0);
+        singles.add(id, singles.players.value(it.key()).abs());
+        doubles.add(id, doubles.players.value(it.key()).abs());
+        combined.add(id, combined.players.value(it.key()).abs());
     }
 
     //

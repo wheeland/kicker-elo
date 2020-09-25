@@ -38,6 +38,7 @@ public:
 private:
     void execQuery(const QString &query);
 
+    void createTables();
     void createQueries();
     void readData();
 

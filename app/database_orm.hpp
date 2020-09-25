@@ -1,5 +1,7 @@
 #pragma once
 
+#include "database.hpp"
+
 #include <Wt/Dbo/Dbo.h>
 #include <Wt/Dbo/WtSqlTraits.h>
 
@@ -7,7 +9,7 @@ struct DbPlayer;
 struct DbCompetition;
 struct DbMatch;
 struct DbPlayedMatch;
-struct DbRating;
+template <EloDomain domain> struct DbRating;
 
 namespace Wt { namespace Dbo {
     template<> struct dbo_traits<DbPlayer> : public dbo_default_traits {
@@ -26,9 +28,7 @@ namespace Wt { namespace Dbo {
         static const char *versionField() { return nullptr; }
         static const char *surrogateIdField() { return nullptr; }
     };
-    template<> struct dbo_traits<DbRating> : public dbo_default_traits {
-        typedef Wt::Dbo::ptr<DbPlayedMatch> IdType;
-        static IdType invalidId() { return IdType(); }
+    template <EloDomain domain> struct dbo_traits<DbRating<domain>> : public dbo_default_traits {
         static const char *versionField() { return nullptr; }
         static const char *surrogateIdField() { return 0; }
     };
@@ -125,29 +125,25 @@ struct DbPlayedMatch
     Wt::Dbo::ptr<DbPlayer> player;
     Wt::Dbo::ptr<DbMatch> match;
 
-    Wt::Dbo::collection<Wt::Dbo::ptr<DbRating>> ratings;
-
     template<class Action>
     void persist(Action& a)
     {
         Wt::Dbo::id(a, id, "id");
         Wt::Dbo::belongsTo(a, player, "player");
         Wt::Dbo::belongsTo(a, match, "match");
-        Wt::Dbo::hasMany(a, ratings, Wt::Dbo::ManyToOne, "played_match");
     }
 };
 
+template <EloDomain>
 struct DbRating
 {
-    Wt::Dbo::ptr<DbPlayedMatch> played_match;
+    int played_match_id;
     float rating;
-
-    Wt::Dbo::collection<Wt::Dbo::ptr<DbRating>> ratings;
 
     template<class Action>
     void persist(Action& a)
     {
-        Wt::Dbo::id(a, played_match, "played_match", Wt::Dbo::OnDeleteCascade);
+        Wt::Dbo::id(a, played_match_id, "played_match_id");
         Wt::Dbo::field(a, rating, "rating");
     }
 };

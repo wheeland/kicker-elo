@@ -24,6 +24,12 @@ Database::Database(const std::string &dbPath)
     }
 
     readData();
+
+    QVector<PlayerMatch> matches = getRecentMatches(getPlayer(1917));
+    for (PlayerMatch m : matches) {
+        const auto pstr = [](const Player *p) { return p ? p->firstName + " " + p->lastName : QString(); };
+        qWarning() << m.id << m.myScore << m.opponentScore << pstr(m.partner) << "VS" << pstr(m.opponent1) << pstr(m.opponent2);
+    }
 }
 
 Database::~Database()
@@ -73,11 +79,11 @@ QVector<QPair<const Player*, float>> Database::getPlayersByRanking(EloDomain dom
     QVector<QPair<const Player*, float>> ret;
 
     QString queryString = QString(
-        "SELECT played_matches.player_id, %1.rating\n"
-        "FROM played_matches\n"
-        "INNER JOIN %1 ON played_matches.id = %1.played_match_id\n"
-        "WHERE played_matches.match_id = 0\n"
-        "ORDER BY %1.rating DESC\n"
+        "SELECT played_matches.player_id, %1.rating "
+        "FROM played_matches "
+        "INNER JOIN %1 ON played_matches.id = %1.played_match_id "
+        "WHERE played_matches.match_id = 0 "
+        "ORDER BY %1.rating DESC "
     ).arg(eloDbName(domain));
 
     if (start > 0 || count > 0) {
@@ -99,6 +105,59 @@ QVector<QPair<const Player*, float>> Database::getPlayersByRanking(EloDomain dom
     }
 
     return ret;
+}
+
+QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start, int count)
+{
+    QVector<PlayerMatch> ret;
+
+    QString queryString =
+        "SELECT played_matches.match_id "
+        "FROM played_matches "
+        "    INNER JOIN matches ON played_matches.match_id = matches.id "
+        "WHERE played_matches.player_id = %1 ORDER BY played_matches.id";
+
+    QSqlQuery query(queryString.arg(player->id));
+
+    QSqlQuery matchQuery;
+    matchQuery.prepare("SELECT * FROM matches WHERE id = ?");
+
+    while (query.next()) {
+        const int matchId = query.value(0).toInt();
+        matchQuery.bindValue(0, matchId);
+        matchQuery.exec();
+        if (!matchQuery.next()) qFatal("nay");
+
+        const int competitionId = matchQuery.value(1).toInt();
+        const MatchType matchType = (MatchType) matchQuery.value(3).toInt();
+        int score1 = matchQuery.value(4).toInt();
+        int score2 = matchQuery.value(5).toInt();
+        int p1  = matchQuery.value(6).toInt();
+        int p2  = matchQuery.value(7).toInt();
+        int p11 = matchQuery.value(8).toInt();
+        int p22 = matchQuery.value(9).toInt();
+
+        if (p2 == player->id || p22 == player->id) {
+            qSwap(p1, p2);
+            qSwap(p11, p22);
+            qSwap(score1, score2);
+        }
+        if (p11 == player->id)
+            qSwap(p1, p11);
+
+        PlayerMatch match;
+        match.id = matchId;
+        match.myScore = score1;
+        match.opponentScore = score2;
+        match.matchType = matchType;
+        match.partner = (matchType == MatchType::Double) ? &m_players[p11] : nullptr;
+        match.opponent1 = &m_players[p2];
+        match.opponent2 = (matchType == MatchType::Double) ? &m_players[p22] : nullptr;
+        ret << match;
+    }
+
+    return ret;
+
 }
 
 } // namespace FoosDB

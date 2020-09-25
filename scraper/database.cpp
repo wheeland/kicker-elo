@@ -69,12 +69,7 @@ void Database::createTables()
       lastName text NOT NULL, \
       primary key (id))"
     );
-    execQuery("CREATE TABLE IF NOT EXISTS elo_single ( \
-      played_match_id integer NOT NULL, \
-      rating real NOT NULL, \
-      primary key (played_match_id))"
-    );
-    execQuery("CREATE TABLE IF NOT EXISTS elo_double ( \
+    execQuery("CREATE TABLE IF NOT EXISTS elo_separate ( \
       played_match_id integer NOT NULL, \
       rating real NOT NULL, \
       primary key (played_match_id))"
@@ -83,6 +78,13 @@ void Database::createTables()
       played_match_id integer NOT NULL, \
       rating real NOT NULL, \
       primary key (played_match_id))"
+    );
+    execQuery("CREATE TABLE IF NOT EXISTS elo_current ( \
+      player_id integer NOT NULL, \
+      single real NOT NULL, \
+      double real NOT NULL, \
+      combined real NOT NULL, \
+      primary key (player_id))"
     );
 }
 
@@ -124,7 +126,7 @@ void Database::readData()
         const int tfvbId = competitionQuery.value(1).toInt();
         const int type = competitionQuery.value(2).toInt();
         const QString name = competitionQuery.value(3).toString();
-        const QDateTime dt = competitionQuery.value(4).toDateTime();
+        const QDateTime dt = QDateTime::fromSecsSinceEpoch(competitionQuery.value(4).toLongLong());
         m_competitions[id] = Competition{id, tfvbId, (CompetitionType) type, name, dt};
     }
 
@@ -160,7 +162,7 @@ int Database::addCompetition(int tfvbId, CompetitionType type, const QString &na
     m_insertCompetitionQuery.bindValue(1, tfvbId);
     m_insertCompetitionQuery.bindValue(2, (int) type);
     m_insertCompetitionQuery.bindValue(3, name);
-    m_insertCompetitionQuery.bindValue(4, dt);
+    m_insertCompetitionQuery.bindValue(4, dt.toSecsSinceEpoch());
     m_insertCompetitionQuery.exec();
     checkQueryStatus(m_insertCompetitionQuery);
 
@@ -274,18 +276,20 @@ void Database::recompute()
     QVariantList pm_players;
     QVariantList pm_matches;
 
+    QHash<int, EloRating> playersSingle;
+    QHash<int, EloRating> playersDouble;
+    QHash<int, EloRating> playersCombined;
+
     struct RatingDomain {
         QVariantList pmIds;
         QVariantList ratings;
-        QHash<int, EloRating> players;
         void add(int pmid, float rating) {
             pmIds << pmid;
             ratings << rating;
         }
     };
-    RatingDomain singles;
-    RatingDomain doubles;
-    RatingDomain combined;
+    RatingDomain eloSeparate;
+    RatingDomain eloCombined;
 
     const auto addPlayedMatch = [&](int p, int m) {
         const int id = pm_ids.size() + 1;
@@ -295,14 +299,14 @@ void Database::recompute()
         return id;
     };
 
-    const auto rateSingle = [&](int pid, int pmid, RatingDomain &domain, float res, float k, const EloRating &other) {
-        domain.players[pid].adjust(k, res, other);
-        domain.add(pmid, domain.players[pid].abs());
+    const auto rateSingle = [&](int pid, int pmid, QHash<int, EloRating> &players, RatingDomain &domain, float res, float k, const EloRating &other) {
+        players[pid].adjust(k, res, other);
+        domain.add(pmid, players[pid].abs());
     };
 
-    const auto rateDouble = [&](int pid, int pmid, RatingDomain &domain, float res, float k, const EloRating &partner, const EloRating &o1, const EloRating &o2) {
-        domain.players[pid].adjust(k, partner, res, o1, o2);
-        domain.add(pmid, domain.players[pid].abs());
+    const auto rateDouble = [&](int pid, int pmid, QHash<int, EloRating> &players, RatingDomain &domain, float res, float k, const EloRating &partner, const EloRating &o1, const EloRating &o2) {
+        players[pid].adjust(k, partner, res, o1, o2);
+        domain.add(pmid, players[pid].abs());
     };
 
     for (const Match &match : sortedMatches) {
@@ -315,15 +319,15 @@ void Database::recompute()
             const int pm1id = addPlayedMatch(match.p1, match.id);
             const int pm2id = addPlayedMatch(match.p2, match.id);
 
-            const EloRating s1 = singles.players[match.p1];
-            const EloRating s2 = singles.players[match.p2];
-            rateSingle(match.p1, pm1id, singles, 1.0f - result, k, s2);
-            rateSingle(match.p2, pm2id, singles, result, k, s1);
+            const EloRating s1 = playersSingle[match.p1];
+            const EloRating s2 = playersSingle[match.p2];
+            rateSingle(match.p1, pm1id, playersSingle, eloSeparate, 1.0f - result, k, s2);
+            rateSingle(match.p2, pm2id, playersSingle, eloSeparate, result, k, s1);
 
-            const EloRating c1 = combined.players[match.p1];
-            const EloRating c2 = combined.players[match.p2];
-            rateSingle(match.p1, pm1id, combined, 1.0f - result, k, c2);
-            rateSingle(match.p2, pm2id, combined, result, k, c1);
+            const EloRating c1 = playersCombined[match.p1];
+            const EloRating c2 = playersCombined[match.p2];
+            rateSingle(match.p1, pm1id, playersCombined, eloCombined, 1.0f - result, k, c2);
+            rateSingle(match.p2, pm2id, playersCombined, eloCombined, result, k, c1);
         }
         else if (match.type == MatchType::Double) {
             const int pm1id  = addPlayedMatch(match.p1,  match.id);
@@ -331,43 +335,47 @@ void Database::recompute()
             const int pm2id  = addPlayedMatch(match.p2,  match.id);
             const int pm22id = addPlayedMatch(match.p22, match.id);
 
-            const EloRating d1  = doubles.players[match.p1];
-            const EloRating d11 = doubles.players[match.p11];
-            const EloRating d2  = doubles.players[match.p2];
-            const EloRating d22 = doubles.players[match.p22];
-            rateDouble(match.p1,  pm1id,  doubles, 1.0f - result, k, d11, d2, d22);
-            rateDouble(match.p11, pm11id, doubles, 1.0f - result, k, d1,  d2, d22);
-            rateDouble(match.p2,  pm2id,  doubles, k, result, d22, d1, d11);
-            rateDouble(match.p22, pm22id, doubles, k, result, d2,  d1, d11);
+            const EloRating d1  = playersDouble[match.p1];
+            const EloRating d11 = playersDouble[match.p11];
+            const EloRating d2  = playersDouble[match.p2];
+            const EloRating d22 = playersDouble[match.p22];
+            rateDouble(match.p1,  pm1id,  playersDouble, eloSeparate, 1.0f - result, k, d11, d2, d22);
+            rateDouble(match.p11, pm11id, playersDouble, eloSeparate, 1.0f - result, k, d1,  d2, d22);
+            rateDouble(match.p2,  pm2id,  playersDouble, eloSeparate, k, result, d22, d1, d11);
+            rateDouble(match.p22, pm22id, playersDouble, eloSeparate, k, result, d2,  d1, d11);
 
-            const EloRating c1  = combined.players[match.p1];
-            const EloRating c11 = combined.players[match.p11];
-            const EloRating c2  = combined.players[match.p2];
-            const EloRating c22 = combined.players[match.p22];
-            rateDouble(match.p1,  pm1id,  combined, 1.0f - result, k, c11, c2, c22);
-            rateDouble(match.p11, pm11id, combined, 1.0f - result, k, c1,  c2, c22);
-            rateDouble(match.p2,  pm2id,  combined, k, result, c22, c1, c11);
-            rateDouble(match.p22, pm22id, combined, k, result, c2,  c1, c11);
+            const EloRating c1  = playersCombined[match.p1];
+            const EloRating c11 = playersCombined[match.p11];
+            const EloRating c2  = playersCombined[match.p2];
+            const EloRating c22 = playersCombined[match.p22];
+            rateDouble(match.p1,  pm1id,  playersCombined, eloCombined, 1.0f - result, k, c11, c2, c22);
+            rateDouble(match.p11, pm11id, playersCombined, eloCombined, 1.0f - result, k, c1,  c2, c22);
+            rateDouble(match.p2,  pm2id,  playersCombined, eloCombined, k, result, c22, c1, c11);
+            rateDouble(match.p22, pm22id, playersCombined, eloCombined, k, result, c2,  c1, c11);
         }
     }
 
     //
     // Store current ELOs as matchid=0
     //
+    QVariantList playerIds;
+    QVariantList playerSingleElos;
+    QVariantList playerDoubleElos;
+    QVariantList playerCombinedElos;
     for (auto it = m_players.cbegin(); it != m_players.cend(); ++it) {
-        const int id = addPlayedMatch(it.key(), 0);
-        singles.add(id, singles.players.value(it.key()).abs());
-        doubles.add(id, doubles.players.value(it.key()).abs());
-        combined.add(id, combined.players.value(it.key()).abs());
+        playerIds << it->id;
+        playerSingleElos << playersSingle[it->id].abs();
+        playerDoubleElos << playersDouble[it->id].abs();
+        playerCombinedElos << playersCombined[it->id].abs();
     }
 
     //
     // Write new played_matches and ELO tables
     //
     execQuery("DELETE FROM played_matches");
-    execQuery("DELETE FROM elo_single");
-    execQuery("DELETE FROM elo_double");
+    execQuery("DELETE FROM elo_separate");
     execQuery("DELETE FROM elo_combined");
+    execQuery("DELETE FROM elo_current");
 
     QSqlQuery query;
 
@@ -381,25 +389,27 @@ void Database::recompute()
     m_db.commit();
 
     m_db.transaction();
-    query.prepare("INSERT INTO elo_single (played_match_id, rating) VALUES (?, ?)");
-    query.addBindValue(singles.pmIds);
-    query.addBindValue(singles.ratings);
-    query.execBatch();
-    checkQueryStatus(query);
-    m_db.commit();
-
-    m_db.transaction();
-    query.prepare("INSERT INTO elo_double (played_match_id, rating) VALUES (?, ?)");
-    query.addBindValue(doubles.pmIds);
-    query.addBindValue(doubles.ratings);
+    query.prepare("INSERT INTO elo_separate (played_match_id, rating) VALUES (?, ?)");
+    query.addBindValue(eloSeparate.pmIds);
+    query.addBindValue(eloSeparate.ratings);
     query.execBatch();
     checkQueryStatus(query);
     m_db.commit();
 
     m_db.transaction();
     query.prepare("INSERT INTO elo_combined (played_match_id, rating) VALUES (?, ?)");
-    query.addBindValue(combined.pmIds);
-    query.addBindValue(combined.ratings);
+    query.addBindValue(eloCombined.pmIds);
+    query.addBindValue(eloCombined.ratings);
+    query.execBatch();
+    checkQueryStatus(query);
+    m_db.commit();
+
+    m_db.transaction();
+    query.prepare("INSERT INTO elo_current (player_id, single, double, combined) VALUES (?, ?, ?, ?)");
+    query.addBindValue(playerIds);
+    query.addBindValue(playerSingleElos);
+    query.addBindValue(playerDoubleElos);
+    query.addBindValue(playerCombinedElos);
     query.execBatch();
     checkQueryStatus(query);
     m_db.commit();

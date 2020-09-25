@@ -33,13 +33,15 @@ struct Player
     int id;
     QString firstName;
     QString lastName;
+    float eloSingle;
+    float eloDouble;
+    float eloCombined;
 };
 
 struct PlayerMatch
 {
-    int id;
     QDateTime date;
-    QString competition;
+    QString competitionName;
     CompetitionType competitionType;
     MatchType matchType;
 
@@ -49,6 +51,9 @@ struct PlayerMatch
 
     int myScore;
     int opponentScore;
+
+    float eloDiffSeparate;
+    float eloDiffCombined;
 };
 
 class Database
@@ -59,7 +64,7 @@ public:
 
     const Player *getPlayer(int id) const;
     QVector<const Player*> searchPlayer(const QString &pattern) const;
-    QVector<QPair<const Player*, float>> getPlayersByRanking(EloDomain domain, int start = 0, int count = -1);
+    QVector<const Player*> getPlayersByRanking(EloDomain domain, int start = 0, int count = -1) const;
 
     QVector<PlayerMatch> getRecentMatches(const Player *player, int start = 0, int count = -1);
 

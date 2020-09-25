@@ -3,15 +3,6 @@
 #include <QDebug>
 #include <QSqlError>
 
-static QString eloDbName(FoosDB::EloDomain domain)
-{
-    switch (domain) {
-    case FoosDB::EloDomain::Single: return "elo_single";
-    case FoosDB::EloDomain::Double: return "elo_double";
-    case FoosDB::EloDomain::Combined: return "elo_combined";
-    }
-}
-
 namespace FoosDB {
 
 Database::Database(const std::string &dbPath)
@@ -28,7 +19,18 @@ Database::Database(const std::string &dbPath)
     QVector<PlayerMatch> matches = getRecentMatches(getPlayer(1917));
     for (PlayerMatch m : matches) {
         const auto pstr = [](const Player *p) { return p ? p->firstName + " " + p->lastName : QString(); };
-        qWarning() << m.id << m.myScore << m.opponentScore << pstr(m.partner) << "VS" << pstr(m.opponent1) << pstr(m.opponent2);
+
+        if (m.matchType == MatchType::Single) {
+            qWarning() << m.date << (int) m.competitionType
+                       << m.myScore << m.opponentScore
+                       << m.eloDiffSeparate << m.eloDiffCombined
+                       << "vs" << pstr(m.opponent1) << m.competitionName;
+        } else {
+            qWarning() << m.date << (int) m.competitionType
+                       << m.myScore << m.opponentScore
+                       << m.eloDiffSeparate << m.eloDiffCombined
+                       << "with" << pstr(m.partner) << "vs" << pstr(m.opponent1) << "+" << pstr(m.opponent2) << m.competitionName;
+        }
     }
 }
 
@@ -46,13 +48,19 @@ void Database::execQuery(const QString &query)
 
 void Database::readData()
 {
-    QSqlQuery playerQuery("SELECT id, firstName, lastName FROM players");
+    QSqlQuery playerQuery(
+        "SELECT p.id, p.firstName, p.lastName, e.single, e.double, e.combined "
+        "FROM players AS p"
+        "INNER JOIN elo_current AS e ON p.id = e.player_id");
 
     while (playerQuery.next()) {
         const int id = playerQuery.value(0).toInt();
         const QString firstName = playerQuery.value(1).toString();
         const QString lastName = playerQuery.value(2).toString();
-        m_players[id] = Player{id, firstName, lastName};
+        const float es = playerQuery.value(3).toFloat();
+        const float ed = playerQuery.value(3).toFloat();
+        const float ec = playerQuery.value(3).toFloat();
+        m_players[id] = Player{id, firstName, lastName, es, ed, ec};
     }
 }
 
@@ -74,35 +82,26 @@ QVector<const Player*> Database::searchPlayer(const QString &pattern) const
     return ret;
 }
 
-QVector<QPair<const Player*, float>> Database::getPlayersByRanking(EloDomain domain, int start, int count)
+QVector<const Player*> Database::getPlayersByRanking(EloDomain domain, int start, int count) const
 {
-    QVector<QPair<const Player*, float>> ret;
+    QVector<const Player*> ret;
 
-    QString queryString = QString(
-        "SELECT played_matches.player_id, %1.rating "
-        "FROM played_matches "
-        "INNER JOIN %1 ON played_matches.id = %1.played_match_id "
-        "WHERE played_matches.match_id = 0 "
-        "ORDER BY %1.rating DESC "
-    ).arg(eloDbName(domain));
+    for (auto it = m_players.begin(); it != m_players.end(); ++it)
+        ret << &it.value();
 
-    if (start > 0 || count > 0) {
-        if (count <= 0) {
-            count = m_players.size();
+    std::sort(ret.begin(), ret.end(), [=](const Player *p1, const Player *p2) {
+        switch (domain) {
+        case EloDomain::Single: return p1->eloSingle < p2->eloSingle;
+        case EloDomain::Double: return p1->eloDouble < p2->eloDouble;
+        case EloDomain::Combined: return p1->eloCombined < p2->eloCombined;
         }
-        queryString += QString("LIMIT %1 OFFSET %2").arg(count).arg(start + 1);
-    }
+    });
 
-    QSqlQuery query(queryString);
-    while (query.next()) {
-        const int id = query.value(0).toInt();
-        const float rating = query.value(1).toFloat();
+    if (start > 0)
+        ret = ret.mid(start);
 
-        const auto it = m_players.find(id);
-        if (it != m_players.cend()) {
-            ret << qMakePair(&it.value(), rating);
-        }
-    }
+    if (count > 0 && count < ret.size())
+        ret.resize(count);
 
     return ret;
 }
@@ -112,10 +111,16 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
     QVector<PlayerMatch> ret;
 
     QString queryString =
-        "SELECT played_matches.match_id "
-        "FROM played_matches "
-        "    INNER JOIN matches ON played_matches.match_id = matches.id "
-        "WHERE played_matches.player_id = %1 ORDER BY played_matches.id";
+        "SELECT pm.match_id, "
+        "       m.type, m.score1, m.score2, m.p1, m.p2, m.p11, m.p22, "
+        "       c.name, c.date, c.type, "
+        "       es.rating, ec.rating "
+        "FROM played_matches AS pm "
+        "INNER JOIN matches AS m ON pm.match_id = m.id "
+        "INNER JOIN competitions AS c ON m.competition_id = c.id "
+        "INNER JOIN elo_eparate AS es ON pm.id = es.played_match_id "
+        "INNER JOIN elo_combined AS ec ON pm.id = ec.played_match_id "
+        "WHERE pm.player_id = %1 ORDER BY pm.id";
 
     QSqlQuery query(queryString.arg(player->id));
 
@@ -124,18 +129,18 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
 
     while (query.next()) {
         const int matchId = query.value(0).toInt();
-        matchQuery.bindValue(0, matchId);
-        matchQuery.exec();
-        if (!matchQuery.next()) qFatal("nay");
-
-        const int competitionId = matchQuery.value(1).toInt();
-        const MatchType matchType = (MatchType) matchQuery.value(3).toInt();
-        int score1 = matchQuery.value(4).toInt();
-        int score2 = matchQuery.value(5).toInt();
-        int p1  = matchQuery.value(6).toInt();
-        int p2  = matchQuery.value(7).toInt();
-        int p11 = matchQuery.value(8).toInt();
-        int p22 = matchQuery.value(9).toInt();
+        const MatchType matchType = (MatchType) query.value(1).toInt();
+        int score1 = query.value(2).toInt();
+        int score2 = query.value(3).toInt();
+        int p1  = query.value(4).toInt();
+        int p2  = query.value(5).toInt();
+        int p11 = query.value(6).toInt();
+        int p22 = query.value(7).toInt();
+        const QString competiton = query.value(8).toString();
+        const QDateTime date = query.value(9).toDateTime();
+        const CompetitionType compType = (CompetitionType) query.value(10).toInt();
+        const float es = query.value(11).toFloat();
+        const float ec = query.value(12).toFloat();
 
         if (p2 == player->id || p22 == player->id) {
             qSwap(p1, p2);
@@ -146,13 +151,21 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
             qSwap(p1, p11);
 
         PlayerMatch match;
-        match.id = matchId;
-        match.myScore = score1;
-        match.opponentScore = score2;
+        match.date = date;
+        match.competitionName = competiton;
+        match.competitionType = compType;
         match.matchType = matchType;
+
         match.partner = (matchType == MatchType::Double) ? &m_players[p11] : nullptr;
         match.opponent1 = &m_players[p2];
         match.opponent2 = (matchType == MatchType::Double) ? &m_players[p22] : nullptr;
+
+        match.myScore = score1;
+        match.opponentScore = score2;
+
+        match.eloDiffSeparate = es;
+        match.eloDiffCombined = ec;
+
         ret << match;
     }
 

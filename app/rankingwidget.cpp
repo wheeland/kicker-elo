@@ -66,11 +66,9 @@ void RankingWidget::next()
 void RankingWidget::update()
 {
     const QVector<const FoosDB::Player*> board =
-            m_db->getPlayersByRanking(m_sortDomain, m_page * m_entriesPerPage, m_entriesPerPage + 1);
+            m_db->getPlayersByRanking(m_sortDomain, m_page * m_entriesPerPage, m_entriesPerPage);
 
-    const int toDisplay = qMin(board.size(), m_entriesPerPage);
-
-    while (m_table->rowCount() - 1 < toDisplay) {
+    while (m_table->rowCount() - 1 < board.size()) {
         const int n = m_table->rowCount();
 
         Row row;
@@ -84,12 +82,12 @@ void RankingWidget::update()
         m_rows << row;
     }
 
-    while (m_table->rowCount() - 1 > toDisplay) {
+    while (m_table->rowCount() - 1 > board.size()) {
         m_table->removeRow(m_table->rowCount() - 1);
         m_rows.removeLast();
     }
 
-    for (int i = 0; i < toDisplay; ++i) {
+    for (int i = 0; i < board.size(); ++i) {
         const std::string name = (board[i]->firstName + " " + board[i]->lastName).toStdString();
 
         m_rows[i].rank->setText(num2str(m_page * m_entriesPerPage + 1 + i));

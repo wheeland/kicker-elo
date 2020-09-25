@@ -21,9 +21,12 @@ add_executable(${TARGET}
     main.cpp
     rankingwidget.cpp
     rankingwidget.hpp
+    playerwidget.cpp
+    playerwidget.hpp
     database.cpp
     database.hpp
     database_orm.hpp
+    util.hpp
 )
 
 target_link_libraries(${TARGET} wt wthttp Qt5::Core Qt5::Sql)

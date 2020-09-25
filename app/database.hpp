@@ -56,8 +56,10 @@ struct PlayerMatch
     int myScore;
     int opponentScore;
 
-    float eloDiffSeparate;
-    float eloDiffCombined;
+    int eloSeparate;
+    int eloSeparateDiff;
+    int eloCombined;
+    int eloCombinedDiff;
 };
 
 class Database

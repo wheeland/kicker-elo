@@ -34,57 +34,59 @@ void Database::execQuery(const QString &query)
 void Database::createTables()
 {
     execQuery("CREATE TABLE IF NOT EXISTS competitions ( \
-      id integer NOT NULL, \
-      tfvbId integer NOT NULL, \
-      type integer, \
-      name text, \
-      date integer, \
-      primary key (id))"
+        id integer NOT NULL, \
+        tfvbId integer NOT NULL, \
+        type integer, \
+        name text, \
+        date integer, \
+        primary key (id))"
     );
     execQuery("CREATE TABLE IF NOT EXISTS played_matches ( \
-      id integer NOT NULL, \
-      player_id integer NOT NULL, \
-      match_id integer, \
-      primary key (id), \
-      constraint fk_played_matches_player foreign key (player_id) references players (id) deferrable initially deferred, \
-      constraint fk_played_matches_match foreign key (match_id) references matches (id) deferrable initially deferred)"
+        id integer NOT NULL, \
+        player_id integer NOT NULL, \
+        match_id integer, \
+        primary key (id), \
+        constraint fk_played_matches_player foreign key (player_id) references players (id) deferrable initially deferred, \
+        constraint fk_played_matches_match foreign key (match_id) references matches (id) deferrable initially deferred)"
     );
     execQuery("CREATE TABLE IF NOT EXISTS matches ( \
-      id integer NOT NULL, \
-      competition_id integer NOT NULL, \
-      position integer, \
-      type integer, \
-      score1 integer, \
-      score2 integer, \
-      p1 integer NOT NULL, \
-      p2 integer NOT NULL, \
-      p11 integer NOT NULL, \
-      p22 integer NOT NULL, \
-      primary key (id), \
-      constraint fk_matches_competition foreign key (competition_id) references competitions (id) deferrable initially deferred)"
+        id integer NOT NULL, \
+        competition_id integer NOT NULL, \
+        position integer, \
+        type integer, \
+        score1 integer, \
+        score2 integer, \
+        p1 integer NOT NULL, \
+        p2 integer NOT NULL, \
+        p11 integer NOT NULL, \
+        p22 integer NOT NULL, \
+        primary key (id), \
+        constraint fk_matches_competition foreign key (competition_id) references competitions (id) deferrable initially deferred)"
     );
     execQuery("CREATE TABLE IF NOT EXISTS players ( \
-      id integer NOT NULL, \
-      firstName text NOT NULL, \
-      lastName text NOT NULL, \
-      primary key (id))"
+        id integer NOT NULL, \
+        firstName text NOT NULL, \
+        lastName text NOT NULL, \
+        primary key (id))"
     );
     execQuery("CREATE TABLE IF NOT EXISTS elo_separate ( \
-      played_match_id integer NOT NULL, \
-      rating real NOT NULL, \
-      primary key (played_match_id))"
+        played_match_id integer NOT NULL, \
+        rating smallint NOT NULL, \
+        change smallint NOT NULL, \
+        primary key (played_match_id))"
     );
     execQuery("CREATE TABLE IF NOT EXISTS elo_combined ( \
-      played_match_id integer NOT NULL, \
-      rating real NOT NULL, \
-      primary key (played_match_id))"
+        played_match_id integer NOT NULL, \
+        rating smallint NOT NULL, \
+        change smallint NOT NULL, \
+        primary key (played_match_id))"
     );
     execQuery("CREATE TABLE IF NOT EXISTS elo_current ( \
-      player_id integer NOT NULL, \
-      single real NOT NULL, \
-      double real NOT NULL, \
-      combined real NOT NULL, \
-      primary key (player_id))"
+        player_id integer NOT NULL, \
+        single real NOT NULL, \
+        double real NOT NULL, \
+        combined real NOT NULL, \
+        primary key (player_id))"
     );
 }
 
@@ -283,9 +285,11 @@ void Database::recompute()
     struct RatingDomain {
         QVariantList pmIds;
         QVariantList ratings;
-        void add(int pmid, float rating) {
+        QVariantList changes;
+        void add(int pmid, qint16 rating, qint16 change) {
             pmIds << pmid;
             ratings << rating;
+            changes << change;
         }
     };
     RatingDomain eloSeparate;
@@ -300,13 +304,17 @@ void Database::recompute()
     };
 
     const auto rateSingle = [&](int pid, int pmid, QHash<int, EloRating> &players, RatingDomain &domain, float res, float k, const EloRating &other) {
+        const qint16 oldRating = players[pid].abs();
         players[pid].adjust(k, res, other);
-        domain.add(pmid, players[pid].abs());
+        const qint16 newRating = players[pid].abs();
+        domain.add(pmid, newRating, newRating - oldRating);
     };
 
     const auto rateDouble = [&](int pid, int pmid, QHash<int, EloRating> &players, RatingDomain &domain, float res, float k, const EloRating &partner, const EloRating &o1, const EloRating &o2) {
+        const qint16 oldRating = players[pid].abs();
         players[pid].adjust(k, partner, res, o1, o2);
-        domain.add(pmid, players[pid].abs());
+        const qint16 newRating = players[pid].abs();
+        domain.add(pmid, newRating, newRating - oldRating);
     };
 
     for (const Match &match : sortedMatches) {
@@ -389,17 +397,19 @@ void Database::recompute()
     m_db.commit();
 
     m_db.transaction();
-    query.prepare("INSERT INTO elo_separate (played_match_id, rating) VALUES (?, ?)");
+    query.prepare("INSERT INTO elo_separate (played_match_id, rating, change) VALUES (?, ?, ?)");
     query.addBindValue(eloSeparate.pmIds);
     query.addBindValue(eloSeparate.ratings);
+    query.addBindValue(eloSeparate.changes);
     query.execBatch();
     checkQueryStatus(query);
     m_db.commit();
 
     m_db.transaction();
-    query.prepare("INSERT INTO elo_combined (played_match_id, rating) VALUES (?, ?)");
+    query.prepare("INSERT INTO elo_combined (played_match_id, rating, change) VALUES (?, ?, ?)");
     query.addBindValue(eloCombined.pmIds);
     query.addBindValue(eloCombined.ratings);
+    query.addBindValue(eloCombined.changes);
     query.execBatch();
     checkQueryStatus(query);
     m_db.commit();

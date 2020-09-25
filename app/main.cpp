@@ -6,6 +6,7 @@
 #include <Wt/WText.h>
 
 #include "rankingwidget.hpp"
+#include "playerwidget.hpp"
 #include "database.hpp"
 
 class EloApp : public Wt::WApplication
@@ -15,6 +16,7 @@ public:
 
 private:
     RankingWidget *m_rankingWidget;
+    PlayerWidget *m_playerWidget;
     FoosDB::Database m_database;
 };
 
@@ -24,7 +26,8 @@ EloApp::EloApp(const Wt::WEnvironment& env)
 {
     setTitle("Hello world");
 
-    m_rankingWidget = root()->addWidget(std::make_unique<RankingWidget>(&m_database));
+//    m_rankingWidget = root()->addWidget(std::make_unique<RankingWidget>(&m_database));
+    m_playerWidget = root()->addWidget(std::make_unique<PlayerWidget>(&m_database, 1917));
 }
 
 int main(int argc, char **argv)

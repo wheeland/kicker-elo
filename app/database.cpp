@@ -104,7 +104,7 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
         "SELECT pm.match_id, "
         "       m.type, m.score1, m.score2, m.p1, m.p2, m.p11, m.p22, "
         "       c.name, c.date, c.type, "
-        "       es.rating, ec.rating "
+        "       es.rating, es.change, ec.rating, ec.change "
         "FROM played_matches AS pm "
         "INNER JOIN matches AS m ON pm.match_id = m.id "
         "INNER JOIN competitions AS c ON m.competition_id = c.id "
@@ -128,8 +128,10 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
         const QString competiton = query.value(8).toString();
         const QDateTime date = QDateTime::fromSecsSinceEpoch(query.value(9).toLongLong());
         const CompetitionType compType = (CompetitionType) query.value(10).toInt();
-        const float es = query.value(11).toFloat();
-        const float ec = query.value(12).toFloat();
+        const float es = query.value(11).toInt();
+        const float esc = query.value(12).toInt();
+        const float ec = query.value(13).toInt();
+        const float ecc = query.value(14).toInt();
 
         if (p2 == player->id || p22 == player->id) {
             qSwap(p1, p2);
@@ -152,8 +154,10 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
         match.myScore = score1;
         match.opponentScore = score2;
 
-        match.eloDiffSeparate = es;
-        match.eloDiffCombined = ec;
+        match.eloSeparate = es;
+        match.eloSeparateDiff = esc;
+        match.eloCombined = ec;
+        match.eloCombinedDiff = ecc;
 
         ret << match;
     }

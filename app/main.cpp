@@ -27,7 +27,7 @@ EloApp::EloApp(const Wt::WEnvironment& env)
 
 int main(int argc, char **argv)
 {
-    FoosDB::Database m_database("2020.sqlite");
+    FoosDB::Database m_database("db.sqlite");
 
     return Wt::WRun(argc, argv, [](const Wt::WEnvironment& env) {
       return std::make_unique<EloApp>(env);

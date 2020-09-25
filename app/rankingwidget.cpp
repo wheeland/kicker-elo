@@ -1,5 +1,7 @@
 #include "rankingwidget.hpp"
 
+#include <memory>
+
 using namespace Wt;
 using std::make_unique;
 

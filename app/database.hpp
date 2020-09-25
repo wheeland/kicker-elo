@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Wt/Dbo/Dbo.h>
-#include <Wt/WDateTime.h>
-#include <string>
-#include <unordered_map>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QPair>
+#include <QHash>
 
 namespace FoosDB {
 
@@ -17,8 +17,8 @@ enum class EloDomain
 struct Player
 {
     int id;
-    std::string firstName;
-    std::string lastName;
+    QString firstName;
+    QString lastName;
 };
 
 class Database
@@ -28,15 +28,19 @@ public:
     ~Database();
 
     const Player *getPlayer(int id) const;
-    std::vector<const Player*> searchPlayer(const std::string &pattern) const;
-    std::vector<std::pair<const Player*, float>> getPlayersByRanking(EloDomain domain);
+    QVector<const Player*> searchPlayer(const QString &pattern) const;
+    QVector<QPair<const Player*, float>> getPlayersByRanking(EloDomain domain, int start = 0, int count = -1);
 
 private:
+    void execQuery(const QString &query);
     void readData();
 
-    Wt::Dbo::Session m_session;
+    QSqlDatabase m_db;
+    QSqlQuery m_insertPlayerQuery;
+    QSqlQuery m_insertCompetitionQuery;
+    QSqlQuery m_insertMatchQuery;
 
-    std::unordered_map<int, Player> m_players;
+    QHash<int, Player> m_players;
 };
 
 } // namespace Database

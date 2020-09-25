@@ -1,80 +1,104 @@
 #include "database.hpp"
-#include "database_orm.hpp"
 
-#include <Wt/Dbo/backend/Sqlite3.h>
-#include <Wt/Dbo/WtSqlTraits.h>
+#include <QDebug>
+#include <QSqlError>
 
-static std::string tolower(const std::string &s)
+static QString eloDbName(FoosDB::EloDomain domain)
 {
-    std::string ret = s;
-    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return std::tolower(c); });
-    return s;
+    switch (domain) {
+    case FoosDB::EloDomain::Single: return "elo_single";
+    case FoosDB::EloDomain::Double: return "elo_double";
+    case FoosDB::EloDomain::Combined: return "elo_combined";
+    }
 }
-
-namespace dbo = Wt::Dbo;
 
 namespace FoosDB {
 
 Database::Database(const std::string &dbPath)
+    : m_db(QSqlDatabase::addDatabase("QSQLITE"))
 {
-    std::unique_ptr<dbo::backend::Sqlite3> sqlite3{new dbo::backend::Sqlite3(dbPath)};
-    sqlite3->setDateTimeStorage(dbo::SqlDateTimeType::DateTime, dbo::backend::DateTimeStorage::UnixTimeAsInteger);
-    m_session.setConnection(std::move(sqlite3));
+    m_db.setDatabaseName(QString::fromStdString(dbPath));
 
-    m_session.mapClass<DbPlayer>("players");
-    m_session.mapClass<DbCompetition>("competitions");
-    m_session.mapClass<DbMatch>("matches");
-    m_session.mapClass<DbPlayedMatch>("played_matches");
-    m_session.mapClass<DbRating<EloDomain::Single>>("elo_single");
-    m_session.mapClass<DbRating<EloDomain::Double>>("elo_double");
-    m_session.mapClass<DbRating<EloDomain::Combined>>("elo_combined");
+    if (!m_db.open()) {
+        qWarning() << "Error opening database:" << m_db.lastError();
+    }
+
+    readData();
 }
 
 Database::~Database()
 {
 }
 
+void Database::execQuery(const QString &query)
+{
+    QSqlQuery sqlQuery(query);
+    if (sqlQuery.lastError().type() != QSqlError::NoError) {
+        qWarning() << "SQL Error:" << sqlQuery.lastError();
+    }
+}
+
 void Database::readData()
 {
-    dbo::Transaction transaction{m_session};
+    QSqlQuery playerQuery("SELECT id, firstName, lastName FROM players");
 
-    const dbo::collection<dbo::ptr<DbPlayer>> players = m_session.find<DbPlayer>();
-    for (const dbo::ptr<DbPlayer> &player : players) {
-        m_players[player->id] = Player{player->id, player->firstName, player->lastName};
+    while (playerQuery.next()) {
+        const int id = playerQuery.value(0).toInt();
+        const QString firstName = playerQuery.value(1).toString();
+        const QString lastName = playerQuery.value(2).toString();
+        m_players[id] = Player{id, firstName, lastName};
     }
 }
 
 const Player *Database::getPlayer(int id) const
 {
     const auto it = m_players.find(id);
-    return (it != m_players.end()) ? &it->second : nullptr;
+    return (it != m_players.end()) ? &it.value() : nullptr;
 }
 
-std::vector<const Player*> Database::searchPlayer(const std::string &pattern) const
+QVector<const Player*> Database::searchPlayer(const QString &pattern) const
 {
-    std::vector<const Player*> ret;
-
-    const std::string lowered = tolower(pattern);
+    QVector<const Player*> ret;
 
     for (auto it = m_players.begin(); it != m_players.end(); ++it) {
-        if (tolower(it->second.firstName).find(pattern) >= 0 || tolower(it->second.lastName).find(pattern) >= 0)
-            ret.push_back(&it->second);
+        if (it->firstName.contains(pattern, Qt::CaseInsensitive) || it->lastName.contains(pattern, Qt::CaseInsensitive))
+            ret.push_back(&it.value());
     }
 
     return ret;
 }
 
-std::vector<std::pair<const Player*, float>> Database::getPlayersByRanking(EloDomain domain)
+QVector<QPair<const Player*, float>> Database::getPlayersByRanking(EloDomain domain, int start, int count)
 {
-    std::vector<std::pair<const Player*, float>> ret;
+    QVector<QPair<const Player*, float>> ret;
 
-    dbo::Transaction transaction{m_session};
+    QString queryString = QString(
+        "SELECT played_matches.player_id, %1.rating\n"
+        "FROM played_matches\n"
+        "INNER JOIN %1 ON played_matches.id = %1.played_match_id\n"
+        "WHERE played_matches.match_id = 0\n"
+        "ORDER BY %1.rating DESC\n"
+    ).arg(eloDbName(domain));
 
-    players = m_session.find<DbPlayer>().join();
-    for (const dbo::ptr<DbPlayer> &player : players) {
-        m_players[player->id] = Player{player->id, player->firstName, player->lastName};
+    if (start > 0 || count > 0) {
+        if (count <= 0) {
+            count = m_players.size();
+        }
+        queryString += QString("LIMIT %1 OFFSET %2").arg(count).arg(start + 1);
     }
 
+    QSqlQuery query(queryString);
+    while (query.next()) {
+        const int id = query.value(0).toInt();
+        const float rating = query.value(1).toFloat();
+
+        const auto it = m_players.find(id);
+        if (it != m_players.cend()) {
+            ret << qMakePair(&it.value(), rating);
+        }
+    }
+
+    return ret;
 }
 
 } // namespace FoosDB

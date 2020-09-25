@@ -15,20 +15,20 @@ public:
 
 private:
     RankingWidget *m_rankingWidget;
+    FoosDB::Database m_database;
 };
 
 EloApp::EloApp(const Wt::WEnvironment& env)
     : Wt::WApplication(env)
+    , m_database("db.sqlite")
 {
     setTitle("Hello world");
 
-    m_rankingWidget = root()->addWidget(std::make_unique<RankingWidget>());
+    m_rankingWidget = root()->addWidget(std::make_unique<RankingWidget>(&m_database));
 }
 
 int main(int argc, char **argv)
 {
-    FoosDB::Database m_database("db.sqlite");
-
     return Wt::WRun(argc, argv, [](const Wt::WEnvironment& env) {
       return std::make_unique<EloApp>(env);
     });

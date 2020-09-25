@@ -31,11 +31,15 @@ enum class MatchType {
 struct Player
 {
     int id;
+
     QString firstName;
     QString lastName;
+
     float eloSingle;
     float eloDouble;
     float eloCombined;
+
+    int matchCount;
 };
 
 struct PlayerMatch
@@ -63,6 +67,7 @@ public:
     ~Database();
 
     const Player *getPlayer(int id) const;
+    int getPlayerCount() const { return m_players.size(); }
     QVector<const Player*> searchPlayer(const QString &pattern) const;
     QVector<const Player*> getPlayersByRanking(EloDomain domain, int start = 0, int count = -1) const;
 

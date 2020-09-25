@@ -15,27 +15,6 @@ Database::Database(const std::string &dbPath)
     }
 
     readData();
-
-    for (auto v : getPlayersByRanking(EloDomain::Double)) {
-        qWarning() << v->eloDouble << v->firstName << v->lastName;
-    }
-
-    QVector<PlayerMatch> matches = getRecentMatches(getPlayer(1917));
-    for (PlayerMatch m : matches) {
-        const auto pstr = [](const Player *p) { return p ? p->firstName + " " + p->lastName : QString(); };
-
-        if (m.matchType == MatchType::Single) {
-            qWarning() << m.date << (int) m.competitionType
-                       << m.myScore << m.opponentScore
-                       << m.eloDiffSeparate << m.eloDiffCombined
-                       << "vs" << pstr(m.opponent1) << m.competitionName;
-        } else {
-            qWarning() << m.date << (int) m.competitionType
-                       << m.myScore << m.opponentScore
-                       << m.eloDiffSeparate << m.eloDiffCombined
-                       << "with" << pstr(m.partner) << "vs" << pstr(m.opponent1) << "+" << pstr(m.opponent2) << m.competitionName;
-        }
-    }
 }
 
 Database::~Database()
@@ -64,7 +43,14 @@ void Database::readData()
         const float es = playerQuery.value(3).toFloat();
         const float ed = playerQuery.value(4).toFloat();
         const float ec = playerQuery.value(5).toFloat();
-        m_players[id] = Player{id, firstName, lastName, es, ed, ec};
+        m_players[id] = Player{id, firstName, lastName, es, ed, ec, 0};
+    }
+
+    QSqlQuery matchCountQuery("SELECT player_id, COUNT(*) FROM played_matches GROUP BY player_id");
+    while (matchCountQuery.next()) {
+        const int id = matchCountQuery.value(0).toInt();
+        const int count = matchCountQuery.value(1).toInt();
+        m_players[id].matchCount = count;
     }
 }
 
@@ -95,9 +81,9 @@ QVector<const Player*> Database::getPlayersByRanking(EloDomain domain, int start
 
     std::sort(ret.begin(), ret.end(), [=](const Player *p1, const Player *p2) {
         switch (domain) {
-        case EloDomain::Single: return p1->eloSingle < p2->eloSingle;
-        case EloDomain::Double: return p1->eloDouble < p2->eloDouble;
-        case EloDomain::Combined: return p1->eloCombined < p2->eloCombined;
+        case EloDomain::Single: return p1->eloSingle > p2->eloSingle;
+        case EloDomain::Double: return p1->eloDouble > p2->eloDouble;
+        case EloDomain::Combined: return p1->eloCombined > p2->eloCombined;
         }
     });
 
@@ -132,7 +118,6 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
     matchQuery.prepare("SELECT * FROM matches WHERE id = ?");
 
     while (query.next()) {
-        const int matchId = query.value(0).toInt();
         const MatchType matchType = (MatchType) query.value(1).toInt();
         int score1 = query.value(2).toInt();
         int score2 = query.value(3).toInt();

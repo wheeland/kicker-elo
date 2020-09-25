@@ -341,8 +341,8 @@ void Database::recompute()
             const EloRating d22 = playersDouble[match.p22];
             rateDouble(match.p1,  pm1id,  playersDouble, eloSeparate, 1.0f - result, k, d11, d2, d22);
             rateDouble(match.p11, pm11id, playersDouble, eloSeparate, 1.0f - result, k, d1,  d2, d22);
-            rateDouble(match.p2,  pm2id,  playersDouble, eloSeparate, k, result, d22, d1, d11);
-            rateDouble(match.p22, pm22id, playersDouble, eloSeparate, k, result, d2,  d1, d11);
+            rateDouble(match.p2,  pm2id,  playersDouble, eloSeparate, result, k, d22, d1, d11);
+            rateDouble(match.p22, pm22id, playersDouble, eloSeparate, result, k, d2,  d1, d11);
 
             const EloRating c1  = playersCombined[match.p1];
             const EloRating c11 = playersCombined[match.p11];
@@ -350,8 +350,8 @@ void Database::recompute()
             const EloRating c22 = playersCombined[match.p22];
             rateDouble(match.p1,  pm1id,  playersCombined, eloCombined, 1.0f - result, k, c11, c2, c22);
             rateDouble(match.p11, pm11id, playersCombined, eloCombined, 1.0f - result, k, c1,  c2, c22);
-            rateDouble(match.p2,  pm2id,  playersCombined, eloCombined, k, result, c22, c1, c11);
-            rateDouble(match.p22, pm22id, playersCombined, eloCombined, k, result, c2,  c1, c11);
+            rateDouble(match.p2,  pm2id,  playersCombined, eloCombined, result, k, c22, c1, c11);
+            rateDouble(match.p22, pm22id, playersCombined, eloCombined, result, k, c2,  c1, c11);
         }
     }
 

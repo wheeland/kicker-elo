@@ -16,6 +16,10 @@ Database::Database(const std::string &dbPath)
 
     readData();
 
+    for (auto v : getPlayersByRanking(EloDomain::Double)) {
+        qWarning() << v->eloDouble << v->firstName << v->lastName;
+    }
+
     QVector<PlayerMatch> matches = getRecentMatches(getPlayer(1917));
     for (PlayerMatch m : matches) {
         const auto pstr = [](const Player *p) { return p ? p->firstName + " " + p->lastName : QString(); };
@@ -50,7 +54,7 @@ void Database::readData()
 {
     QSqlQuery playerQuery(
         "SELECT p.id, p.firstName, p.lastName, e.single, e.double, e.combined "
-        "FROM players AS p"
+        "FROM players AS p "
         "INNER JOIN elo_current AS e ON p.id = e.player_id");
 
     while (playerQuery.next()) {
@@ -58,8 +62,8 @@ void Database::readData()
         const QString firstName = playerQuery.value(1).toString();
         const QString lastName = playerQuery.value(2).toString();
         const float es = playerQuery.value(3).toFloat();
-        const float ed = playerQuery.value(3).toFloat();
-        const float ec = playerQuery.value(3).toFloat();
+        const float ed = playerQuery.value(4).toFloat();
+        const float ec = playerQuery.value(5).toFloat();
         m_players[id] = Player{id, firstName, lastName, es, ed, ec};
     }
 }
@@ -118,7 +122,7 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
         "FROM played_matches AS pm "
         "INNER JOIN matches AS m ON pm.match_id = m.id "
         "INNER JOIN competitions AS c ON m.competition_id = c.id "
-        "INNER JOIN elo_eparate AS es ON pm.id = es.played_match_id "
+        "INNER JOIN elo_separate AS es ON pm.id = es.played_match_id "
         "INNER JOIN elo_combined AS ec ON pm.id = ec.played_match_id "
         "WHERE pm.player_id = %1 ORDER BY pm.id";
 
@@ -137,7 +141,7 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
         int p11 = query.value(6).toInt();
         int p22 = query.value(7).toInt();
         const QString competiton = query.value(8).toString();
-        const QDateTime date = query.value(9).toDateTime();
+        const QDateTime date = QDateTime::fromSecsSinceEpoch(query.value(9).toLongLong());
         const CompetitionType compType = (CompetitionType) query.value(10).toInt();
         const float es = query.value(11).toFloat();
         const float ec = query.value(12).toFloat();

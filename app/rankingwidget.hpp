@@ -13,6 +13,8 @@ public:
     RankingWidget(FoosDB::Database *db);
     ~RankingWidget();
 
+    Wt::Signal<int>& playerClicked() { return m_playerClicked; }
+
 private:
     void prev();
     void next();
@@ -27,4 +29,6 @@ private:
 
     int m_page = 0;
     int m_entriesPerPage = 20;
+
+    Wt::Signal<int> m_playerClicked;
 };

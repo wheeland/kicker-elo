@@ -17,12 +17,25 @@ static std::string date2str(const QDateTime &dt)
     return QString::asprintf("%02d.%02d.%d", date.day(), date.month(), date.year()).toStdString();
 }
 
+static std::string diff2str(int diff)
+{
+    return (diff > 0) ? ("+" + num2str(diff)) : num2str(diff);
+}
+
+static std::string player2str(const FoosDB::Player *player)
+{
+    return player ? (player->firstName + " " + player->lastName).toStdString() : "";
+}
+
 PlayerWidget::PlayerWidget(FoosDB::Database *db, int playerId)
     : m_db(db)
 {
     setContentAlignment(AlignmentFlag::Center);
 
     m_title = addWidget(make_unique<WText>(""));
+    m_eloCombind = addWidget(make_unique<WText>(""));
+    m_eloDouble = addWidget(make_unique<WText>(""));
+    m_eloSingle = addWidget(make_unique<WText>(""));
 
     //
     // setup ELO plot
@@ -37,7 +50,12 @@ PlayerWidget::PlayerWidget(FoosDB::Database *db, int playerId)
     m_eloChart->setMargin(WLength::Auto, Side::Left | Side::Right);
 
     //
-    // setup table
+    // setup opponents table
+    //
+    m_opponents = addWidget(make_unique<WTable>());
+
+    //
+    // setup matches table
     //
     m_matches = addWidget(make_unique<WTable>());
     m_matches->insertRow(0)->setHeight("2em");
@@ -79,7 +97,61 @@ void PlayerWidget::setPlayerId(int id)
     else
         m_playerMatches.clear();
 
+    //
+    // Update Peak ELO statistics and player matchups
+    //
+    QHash<const FoosDB::Player*, OtherPlayerStats> oc, os, od, pc, pd;
+    m_combinedStats = m_doubleStats = m_singleStats = EloStats();
+    for (const FoosDB::PlayerMatch &pm : m_playerMatches) {
+        m_combinedStats.peak = qMax(m_combinedStats.peak, pm.eloCombined);
+
+        if (pm.matchType == FoosDB::MatchType::Single) {
+            m_singleStats.peak = qMax(m_singleStats.peak, pm.eloSeparate);
+            os[pm.opponent1].play(pm.eloSeparateDiff);
+            oc[pm.opponent1].play(pm.eloCombinedDiff);
+        }
+        else {
+            m_doubleStats.peak = qMax(m_doubleStats.peak, pm.eloSeparate);
+            od[pm.opponent1].play(pm.eloSeparateDiff);
+            oc[pm.opponent1].play(pm.eloCombinedDiff);
+            od[pm.opponent2].play(pm.eloSeparateDiff);
+            oc[pm.opponent2].play(pm.eloCombinedDiff);
+            pd[pm.partner].play(pm.eloSeparateDiff);
+            pc[pm.partner].play(pm.eloCombinedDiff);
+        }
+    }
+    const auto toVec = [](const QHash<const FoosDB::Player*, OtherPlayerStats> &h) {
+        QVector<OtherPlayerStats> ret;
+        for (auto it = h.begin(); it != h.end(); ++it) {
+            ret << it.value();
+            ret.back().player = it.key();
+        }
+        std::sort(ret.begin(), ret.end());
+        return ret;
+    };
+    m_combinedStats.m_partnerDelta = toVec(pc);
+    m_combinedStats.m_opponentDelta = toVec(oc);
+    m_doubleStats.m_partnerDelta = toVec(pd);
+    m_doubleStats.m_opponentDelta = toVec(od);
+    m_singleStats.m_opponentDelta = toVec(os);
+
+    if (m_player) {
+        const auto eloText = [](const std::string &name, int curr, int peak) {
+            return "<p><b>" + name + ": " + num2str(curr) + " (Peak: " + num2str(peak) + ")</b></p>";
+        };
+        m_title->setText("<b>" + player2str(m_player) + "</b>");
+        m_eloCombind->setText(eloText("Combined", (int) m_player->eloCombined, m_combinedStats.peak));
+        m_eloDouble->setText(eloText("Double", (int) m_player->eloDouble, m_doubleStats.peak));
+        m_eloSingle->setText(eloText("Single", (int) m_player->eloSingle, m_singleStats.peak));
+    } else {
+        m_title->setText("Invalid Player");
+        m_eloCombind->setText("");
+        m_eloDouble->setText("");
+        m_eloSingle->setText("");
+    }
+
     updateChart();
+    updateOpponents();
     updateTable();
 }
 
@@ -136,6 +208,50 @@ void PlayerWidget::updateChart()
     }
 }
 
+void PlayerWidget::updateOpponents()
+{
+    m_opponents->clear();
+
+    if (!m_player)
+        return;
+
+    const auto getstr = [](const QVector<OtherPlayerStats> &stats, int idx) {
+        if (qAbs(idx) > stats.size())
+            return std::string();
+        const int realIdx = (idx > 0) ? (idx - 1) : (stats.size() + idx);
+        const OtherPlayerStats ops = stats.value(realIdx);
+        return "<p><b>" + player2str(ops.player) + "</b>: " +
+                diff2str(ops.eloDelta) + " <i>(" + num2str(ops.matchCount) + " matches)</i></p>";
+    };
+
+    m_opponents->insertRow(0)->setHeight("2em");
+    m_opponents->insertColumn(0)->setWidth("15vw");
+    m_opponents->insertColumn(1)->setWidth("15vw");
+    m_opponents->insertColumn(2)->setWidth("15vw");
+    m_opponents->insertColumn(3)->setWidth("15vw");
+    m_opponents->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Evil Wizards</b>"));
+    m_opponents->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Poor Souls</b>"));
+    m_opponents->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Idiots</b>"));
+    m_opponents->elementAt(0, 3)->addWidget(make_unique<WText>("<b>Heroes</b>"));
+
+    for (int i = 1 ; i <= 3; ++i) {
+        const std::string o1 = getstr(m_combinedStats.m_opponentDelta, i);
+        const std::string o2 = getstr(m_combinedStats.m_opponentDelta, -i);
+        const std::string p1 = getstr(m_combinedStats.m_partnerDelta, i);
+        const std::string p2 = getstr(m_combinedStats.m_partnerDelta, -i);
+
+        if (o1.empty() && o2.empty() && p1.empty() && p2.empty())
+            break;
+
+        m_opponents->insertRow(m_opponents->rowCount() - 1)->setHeight("1.8em");;
+        const int n = m_opponents->rowCount() - 1;
+        m_opponents->elementAt(n, 0)->addWidget(make_unique<WText>(o1));
+        m_opponents->elementAt(n, 1)->addWidget(make_unique<WText>(o2));
+        m_opponents->elementAt(n, 2)->addWidget(make_unique<WText>(p1));
+        m_opponents->elementAt(n, 3)->addWidget(make_unique<WText>(p2));
+    }
+}
+
 void PlayerWidget::updateTable()
 {
     if (!m_player) {
@@ -177,8 +293,6 @@ void PlayerWidget::updateTable()
         m_rows.removeLast();
     }
 
-    m_title->setText(("<b>" + m_player->firstName + " " + m_player->lastName + "</b>").toStdString());
-
     for (int i = 0; i < count; ++i) {
         const FoosDB::PlayerMatch &m = m_playerMatches[m_playerMatches.size() - 1 - (i + m_page * m_entriesPerPage)];
 
@@ -195,18 +309,14 @@ void PlayerWidget::updateTable()
             return num2str(elo) + " (" + num2str(diff) + ")";
         };
 
-        const auto playerStr = [](const FoosDB::Player *p) {
-            return p ? ("<p>" + p->firstName + " " + p->lastName + "</p>").toStdString() : "";
-        };
-
         const auto playerLink = [](const FoosDB::Player *p) {
             return p ? Wt::WLink(LinkType::InternalPath, "/player/" + num2str(p->id)) : Wt::WLink();
         };
 
-        m_rows[i].player1 ->setText(playerStr(m_player));
-        m_rows[i].player11->setText(playerStr(m.partner));
-        m_rows[i].player2 ->setText(playerStr(m.opponent1));
-        m_rows[i].player22->setText(playerStr(m.opponent2));
+        m_rows[i].player1 ->setText("<p>" + player2str(m_player) + "</p>");
+        m_rows[i].player11->setText("<p>" + player2str(m.partner) + "</p>");
+        m_rows[i].player2 ->setText("<p>" + player2str(m.opponent1) + "</p>");
+        m_rows[i].player22->setText("<p>" + player2str(m.opponent2) + "</p>");
 
         m_rows[i].player1 ->setLink(playerLink(m_player));
         m_rows[i].player11->setLink(playerLink(m.partner));
@@ -216,4 +326,3 @@ void PlayerWidget::updateTable()
         m_rows[i].eloCombined->setText(ratingStr(m.eloCombined, m.eloCombinedDiff));
     }
 }
-

@@ -2,6 +2,10 @@
 #include "util.hpp"
 
 #include <Wt/WVBoxLayout.h>
+#include <Wt/WDate.h>
+#include <Wt/WTime.h>
+#include <Wt/WDateTime.h>
+#include <Wt/WStandardItem.h>
 
 using namespace Wt;
 using namespace Util;
@@ -16,15 +20,26 @@ static std::string date2str(const QDateTime &dt)
 PlayerWidget::PlayerWidget(FoosDB::Database *db, int playerId)
     : m_db(db)
 {
-    setPlayerId(playerId);
-
     setContentAlignment(AlignmentFlag::Center);
 
     m_title = addWidget(make_unique<WText>(""));
 
-    m_matches = addWidget(make_unique<WTable>());
+    //
+    // setup ELO plot
+    //
+    m_eloChart = addWidget(make_unique<Wt::Chart::WCartesianChart>());
+    m_eloChart->setBackground(WColor(220, 220, 220));
+    m_eloChart->setLegendEnabled(true);
+    m_eloChart->setType(Chart::ChartType::Scatter);
+    m_eloChart->setPlotAreaPadding(40, Side::Left | Side::Top | Side::Bottom);
+    m_eloChart->setPlotAreaPadding(120, Side::Right);
+    m_eloChart->resize(800, 400);
+    m_eloChart->setMargin(WLength::Auto, Side::Left | Side::Right);
 
-    // setup table headers
+    //
+    // setup table
+    //
+    m_matches = addWidget(make_unique<WTable>());
     m_matches->insertRow(0)->setHeight("2em");
     m_matches->insertColumn(0)->setWidth("15vw");
     m_matches->insertColumn(1)->setWidth("15vw");
@@ -38,45 +53,101 @@ PlayerWidget::PlayerWidget(FoosDB::Database *db, int playerId)
     m_matches->elementAt(0, 3)->addWidget(make_unique<WText>("<b>Team 2</b>"));
     m_matches->elementAt(0, 4)->addWidget(make_unique<WText>("<b>ELO</b>"));
 
+    //
+    // setup buttons
+    //
     m_prevButton = addWidget(make_unique<WPushButton>("Prev"));
     m_nextButton = addWidget(make_unique<WPushButton>("Next"));
 
     m_prevButton->clicked().connect(this, &PlayerWidget::prev);
     m_nextButton->clicked().connect(this, &PlayerWidget::next);
 
-    update();
+    setPlayerId(playerId);
 }
 
 PlayerWidget::~PlayerWidget()
 {
-
 }
 
 void PlayerWidget::setPlayerId(int id)
 {
     m_playerId = id;
     m_player = m_db->getPlayer(id);
+
+    if (m_player)
+        m_playerMatches = m_db->getPlayerMatches(m_player);
+    else
+        m_playerMatches.clear();
+
+    updateChart();
+    updateTable();
 }
 
 void PlayerWidget::prev()
 {
     m_page = qMax(m_page - 1, 0);
-    update();
+    updateTable();
 }
 
 void PlayerWidget::next()
 {
-    const int count = m_player ? m_player->matchCount : 0;
-    m_page = qMin(m_page + 1, count / m_entriesPerPage);
-    update();
+    m_page++;
+    updateTable();
 }
 
-void PlayerWidget::update()
+void PlayerWidget::updateChart()
 {
-    const QVector<FoosDB::PlayerMatch> matches =
-            m_db->getRecentMatches(m_player, m_page * m_entriesPerPage, m_entriesPerPage);
+    if (m_playerMatches.isEmpty())
+        return;
 
-    while (m_matches->rowCount() - 1 < matches.size()) {
+    int eloCombined = m_playerMatches.first().eloCombined - m_playerMatches.first().eloCombinedDiff;
+    int eloSingle = eloCombined;
+    int eloDouble = eloCombined;
+
+    m_eloModel = std::make_shared<Wt::WStandardItemModel>(m_playerMatches.size(), 4);
+    m_eloModel->setHeaderData(0, WString("Date"));
+    m_eloModel->setHeaderData(1, WString("Combined"));
+    m_eloModel->setHeaderData(2, WString("Double"));
+    m_eloModel->setHeaderData(3, WString("Single"));
+
+    for (int i = 0; i < m_playerMatches.size(); ++i) {
+        const FoosDB::PlayerMatch &pm = m_playerMatches[i];
+
+        const WDate date(pm.date.date().year(), pm.date.date().month(), pm.date.date().day());
+
+        eloCombined = pm.eloCombined;
+        if (pm.matchType == FoosDB::MatchType::Single)
+            eloSingle = pm.eloSeparate;
+        else
+            eloDouble = pm.eloSeparate;
+
+        m_eloModel->setData(i, 0, date);
+        m_eloModel->setData(i, 1, (float) eloCombined);
+        m_eloModel->setData(i, 2, (float) eloDouble);
+        m_eloModel->setData(i, 3, (float) eloSingle);
+    }
+
+    m_eloChart->setModel(m_eloModel);
+    m_eloChart->setXSeriesColumn(0);
+    m_eloChart->axis(Chart::Axis::X).setScale(Chart::AxisScale::Date);
+    for (int i = 0; i < 3; ++i) {
+        auto s = make_unique<Chart::WDataSeries>(i + 1, Chart::SeriesType::Line);
+        m_eloChart->addSeries(std::move(s));
+    }
+}
+
+void PlayerWidget::updateTable()
+{
+    if (!m_player) {
+        while (m_matches->rowCount() > 1)
+            m_matches->removeRow(m_matches->rowCount() - 1);
+        return;
+    }
+
+    m_page = qMin(m_page, m_player->matchCount / m_entriesPerPage);
+    const int count = qMin(m_player->matchCount - m_page * m_entriesPerPage, m_entriesPerPage);
+
+    while (m_matches->rowCount() - 1 < count) {
         const int n = m_matches->rowCount();
 
         Row row;
@@ -101,16 +172,19 @@ void PlayerWidget::update()
         m_rows << row;
     }
 
-    while (m_matches->rowCount() - 1 > matches.size()) {
+    while (m_matches->rowCount() - 1 > count) {
         m_matches->removeRow(m_matches->rowCount() - 1);
         m_rows.removeLast();
     }
 
-    for (int i = 0; i < matches.size(); ++i) {
-        const FoosDB::PlayerMatch &m = matches[i];
+    m_title->setText(("<b>" + m_player->firstName + " " + m_player->lastName + "</b>").toStdString());
 
-        m_rows[i].date->setText("<p>" + date2str(m.date) + "</p>");
-        m_rows[i].competition->setText("<p>" + m.competitionName.toStdString() + "</p>");
+    for (int i = 0; i < count; ++i) {
+        const FoosDB::PlayerMatch &m = m_playerMatches[m_playerMatches.size() - 1 - (i + m_page * m_entriesPerPage)];
+
+        m_rows[i].date->setText("<p><small><i>" + date2str(m.date) + "</i></small></p>");
+        m_rows[i].competition->setText("<p><small>" + m.competitionName.toStdString() + "</small></p>");
+        m_rows[i].competition->setTextFormat(TextFormat::UnsafeXHTML);
 
         if (m.myScore > 1 || m.opponentScore > 1)
             m_rows[i].score->setText(num2str(m.myScore) + ":" + num2str(m.opponentScore));

@@ -4,6 +4,8 @@
 #include <Wt/WText.h>
 #include <Wt/WPushButton.h>
 #include <Wt/WContainerWidget.h>
+#include <Wt/WStandardItemModel.h>
+#include <Wt/Chart/WCartesianChart.h>
 
 #include "database.hpp"
 
@@ -18,11 +20,15 @@ public:
 private:
     void prev();
     void next();
-    void update();
+    void updateChart();
+    void updateTable();
 
     FoosDB::Database *m_db;
+
+    QVector<FoosDB::PlayerMatch> m_playerMatches;
     int m_playerId;
     const FoosDB::Player *m_player = nullptr;
+
     Wt::WText *m_title;
     Wt::WTable *m_matches;
     Wt::WPushButton *m_prevButton;
@@ -49,4 +55,7 @@ private:
         Wt::WText *eloDouble;
     };
     QVector<Row> m_rows;
+
+    std::shared_ptr<Wt::WStandardItemModel> m_eloModel;
+    Wt::Chart::WCartesianChart *m_eloChart;
 };

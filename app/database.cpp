@@ -123,8 +123,10 @@ QVector<const Player*> Database::getPlayersByRanking(EloDomain domain, int start
     return ret;
 }
 
-QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start, int count)
+QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, int start, int count)
 {
+    const qint64 t0 = QDateTime::currentMSecsSinceEpoch();
+
     QSqlDatabase *db = getOrCreateDb();
     QVector<PlayerMatch> ret;
 
@@ -149,8 +151,7 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
 
     QSqlQuery query(queryString.arg(player->id), *db);
 
-    QSqlQuery matchQuery;
-    matchQuery.prepare("SELECT * FROM matches WHERE id = ?");
+    const qint64 t1 = QDateTime::currentMSecsSinceEpoch();
 
     while (query.next()) {
         const MatchType matchType = (MatchType) query.value(1).toInt();
@@ -196,6 +197,9 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
 
         ret << match;
     }
+
+    const qint64 t2 = QDateTime::currentMSecsSinceEpoch();
+    qWarning() << t2 -t1 << t1- t0;
 
     return ret;
 

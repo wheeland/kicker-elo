@@ -31,6 +31,8 @@ RankingWidget::RankingWidget(FoosDB::Database *db)
     m_table->insertColumn(4)->setWidth("5vw");
     m_table->insertColumn(5)->setWidth("5vw");
 
+    m_table->toggleStyleClass("table-bordered", true);
+
     m_table->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Rank</b>"));
     m_table->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Name</b>"));
     m_table->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Combined</b>"));

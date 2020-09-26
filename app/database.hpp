@@ -5,6 +5,9 @@
 #include <QPair>
 #include <QHash>
 #include <QDateTime>
+#include <QReadWriteLock>
+
+class QThread;
 
 namespace FoosDB {
 
@@ -76,10 +79,12 @@ public:
     QVector<PlayerMatch> getRecentMatches(const Player *player, int start = 0, int count = -1);
 
 private:
-    void execQuery(const QString &query);
     void readData();
+    QSqlDatabase *getOrCreateDb();
 
-    QSqlDatabase m_db;
+    // each thread needs to have its own database connection
+    QReadWriteLock m_dbLock;
+    QHash<QThread*, QSqlDatabase*> m_dbs;
 
     QHash<int, Player> m_players;
 };

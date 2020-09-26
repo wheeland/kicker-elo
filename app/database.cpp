@@ -2,39 +2,62 @@
 
 #include <QDebug>
 #include <QSqlError>
+#include <QThread>
+
+static QString genConnName()
+{
+    static QAtomicInt counter = 0;
+    return QString("SqliteConnection%1").arg(counter.fetchAndAddOrdered(1));
+}
 
 namespace FoosDB {
 
 Database::Database(const std::string &dbPath)
-    : m_db(QSqlDatabase::addDatabase("QSQLITE"))
 {
-    m_db.setDatabaseName(QString::fromStdString(dbPath));
-
-    if (!m_db.open()) {
-        qWarning() << "Error opening database:" << m_db.lastError();
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", genConnName());
+    db.setDatabaseName(QString::fromStdString(dbPath));
+    if (!db.open()) {
+        qWarning() << "Error opening database:" << db.lastError();
     }
+
+    m_dbs[QThread::currentThread()] = new QSqlDatabase(db);
 
     readData();
 }
 
 Database::~Database()
 {
+    QWriteLocker lock(&m_dbLock);
+    for (auto it = m_dbs.begin(); it != m_dbs.end(); ++it)
+        delete it.value();
 }
 
-void Database::execQuery(const QString &query)
+QSqlDatabase *Database::getOrCreateDb()
 {
-    QSqlQuery sqlQuery(query);
-    if (sqlQuery.lastError().type() != QSqlError::NoError) {
-        qWarning() << "SQL Error:" << sqlQuery.lastError();
+    QThread *thread = QThread::currentThread();
+
+    QReadLocker readLock(&m_dbLock);
+    auto it = m_dbs.find(thread);
+    if (it == m_dbs.end()) {
+        QReadLocker writeLock(&m_dbLock);
+        QSqlDatabase newDb = QSqlDatabase::cloneDatabase(*m_dbs.begin().value(), genConnName());
+        if (!newDb.open()) {
+            qWarning() << "Error opening database:" << newDb.lastError();
+        }
+        it = m_dbs.insert(thread, new QSqlDatabase(newDb));
     }
+
+    return it.value();
 }
 
 void Database::readData()
 {
+    QSqlDatabase *db = getOrCreateDb();
+
     QSqlQuery playerQuery(
         "SELECT p.id, p.firstName, p.lastName, e.single, e.double, e.combined "
         "FROM players AS p "
-        "INNER JOIN elo_current AS e ON p.id = e.player_id");
+        "INNER JOIN elo_current AS e ON p.id = e.player_id", *db);
 
     while (playerQuery.next()) {
         const int id = playerQuery.value(0).toInt();
@@ -46,7 +69,11 @@ void Database::readData()
         m_players[id] = Player{id, firstName, lastName, es, ed, ec, 0};
     }
 
-    QSqlQuery matchCountQuery("SELECT player_id, COUNT(*) FROM played_matches GROUP BY player_id");
+    QSqlQuery matchCountQuery(
+        "SELECT player_id, COUNT(*) "
+        "FROM played_matches "
+        "GROUP BY player_id", *db);
+
     while (matchCountQuery.next()) {
         const int id = matchCountQuery.value(0).toInt();
         const int count = matchCountQuery.value(1).toInt();
@@ -98,6 +125,7 @@ QVector<const Player*> Database::getPlayersByRanking(EloDomain domain, int start
 
 QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start, int count)
 {
+    QSqlDatabase *db = getOrCreateDb();
     QVector<PlayerMatch> ret;
 
     QString queryString =
@@ -110,9 +138,16 @@ QVector<PlayerMatch> Database::getRecentMatches(const Player *player, int start,
         "INNER JOIN competitions AS c ON m.competition_id = c.id "
         "INNER JOIN elo_separate AS es ON pm.id = es.played_match_id "
         "INNER JOIN elo_combined AS ec ON pm.id = ec.played_match_id "
-        "WHERE pm.player_id = %1 ORDER BY pm.id";
+        "WHERE pm.player_id = %1 "
+        "ORDER BY pm.id ";
 
-    QSqlQuery query(queryString.arg(player->id));
+    if (start > 0 || count > 0) {
+        if (count <= 0)
+            count = 1000;
+        queryString += QString::asprintf("LIMIT %d OFFSET %d", count, start);
+    }
+
+    QSqlQuery query(queryString.arg(player->id), *db);
 
     QSqlQuery matchQuery;
     matchQuery.prepare("SELECT * FROM matches WHERE id = ?");

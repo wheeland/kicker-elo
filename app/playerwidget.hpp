@@ -32,13 +32,18 @@ private:
     int m_entriesPerPage = 20;
 
     struct Row {
+        // column 1
         Wt::WText *date;
         Wt::WText *competition;
+        // column 2
         Wt::WAnchor *player1;
         Wt::WAnchor *player11;
+        // column 3
         Wt::WText *score;
+        // column 4
         Wt::WAnchor *player2;
         Wt::WAnchor *player22;
+        // column 5?
         Wt::WText *eloCombined;
         Wt::WText *eloSingle;
         Wt::WText *eloDouble;

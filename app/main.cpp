@@ -44,13 +44,20 @@ EloApp::EloApp(const WEnvironment& env)
     rootBg->setHeight("100vh");
     rootBg->setPositionScheme(PositionScheme::Fixed);
 
-    WContainerWidget *content = root()->addWidget(make_unique<WContainerWidget>());
-    content->setMaximumSize("40em", WLength::Auto);
-    content->setHeight("100vh");
+    WContainerWidget *contentBg = root()->addWidget(make_unique<WContainerWidget>());
+    contentBg->setMaximumSize("40em", WLength::Auto);
+    contentBg->setHeight("100vh");
+    contentBg->setMargin(WLength::Auto);
+    contentBg->setPositionScheme(PositionScheme::Relative);
+    contentBg->decorationStyle().setBackgroundColor(WColor(240, 240, 240));
+
+    WContainerWidget *content = contentBg->addWidget(make_unique<WContainerWidget>());
+    content->setWidth("95%");
+    content->setHeight("95%");
     content->setMargin(WLength::Auto);
     content->setPositionScheme(PositionScheme::Relative);
-    content->decorationStyle().setBackgroundColor(WColor(240, 240, 240));
     content->setOverflow(Overflow::Scroll, Orientation::Vertical);
+    content->decorationStyle().setBackgroundColor(WColor(240, 240, 240));
 
     m_backToRanking = content->addWidget(make_unique<WAnchor>());
     m_backToRanking->setText("<<");

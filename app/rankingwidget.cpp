@@ -54,10 +54,14 @@ RankingWidget::RankingWidget()
 
     m_table->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Rank</b>"));
     m_table->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Name</b>"));
-    m_table->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Combo</b>"));
-    m_table->elementAt(0, 3)->addWidget(make_unique<WText>("<b>Single</b>"));
-    m_table->elementAt(0, 4)->addWidget(make_unique<WText>("<b>Double</b>"));
+    WPushButton *comboBtn = m_table->elementAt(0, 2)->addWidget(make_unique<WPushButton>("Combo"));
+    WPushButton *singleBtn = m_table->elementAt(0, 3)->addWidget(make_unique<WPushButton>("Single"));
+    WPushButton *doubleBtn = m_table->elementAt(0, 4)->addWidget(make_unique<WPushButton>("Double"));
     m_table->elementAt(0, 5)->addWidget(make_unique<WText>("<b>Games</b>"));
+
+    comboBtn->clicked().connect([=]() { m_sortDomain = FoosDB::EloDomain::Combined; update(); });
+    singleBtn->clicked().connect([=]() { m_sortDomain = FoosDB::EloDomain::Single; update(); });
+    doubleBtn->clicked().connect([=]() { m_sortDomain = FoosDB::EloDomain::Double; update(); });
 
     //
     // Add search bar
@@ -152,10 +156,15 @@ void RankingWidget::update()
         m_table->insertRow(n)->setHeight("1.8em");
         row.rank = m_table->elementAt(n, 0)->addWidget(make_unique<WText>());
         row.player = m_table->elementAt(n, 1)->addWidget(make_unique<WAnchor>(createPlayerLink(0)));
-        row.eloCombined = m_table->elementAt(n, 2)->addWidget(make_unique<WText>());
-        row.eloSingle = m_table->elementAt(n, 3)->addWidget(make_unique<WText>());
-        row.eloDouble  = m_table->elementAt(n, 4)->addWidget(make_unique<WText>());
-        row.matchCount = m_table->elementAt(n, 5)->addWidget(make_unique<WText>());
+        const auto createText = []() {
+            auto ret = make_unique<WText>();
+            ret->setMargin("1em", Side::Left);
+            return ret;
+        };
+        row.eloCombined = m_table->elementAt(n, 2)->addWidget(createText());
+        row.eloSingle = m_table->elementAt(n, 3)->addWidget(createText());
+        row.eloDouble  = m_table->elementAt(n, 4)->addWidget(createText());
+        row.matchCount = m_table->elementAt(n, 5)->addWidget(createText());
         m_rows << row;
     }
 

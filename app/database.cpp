@@ -266,22 +266,39 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, EloDomain 
     using CombinedSeparateElo = QPair<int, int>;
     QHash<PlayedMatch, CombinedSeparateElo> matchElos;
 
+    const QString whereString = QString("WHERE pm.player_id = %1 ").arg(player->id) +
+            ((domain == EloDomain::Single) ? "AND m.type = 1 " :
+             (domain == EloDomain::Double) ? "AND m.type = 2 " : "");
+
+    if (count < 0)
+        count = 10000;
+
+    const QString orderString = "ORDER BY pm.id DESC ";
+    const QString limitString =
+            (start > 0 || count > 0)
+            ? QString("LIMIT %1 OFFSET %2 ").arg(count).arg(start)
+            : QString();
+
+
     //
     // Read all ELO start rankings for all participants in all matches that the player has played
     //
     const QString eloQueryString(
-        "SELECT pm.match_id, pm.player_id, ec.rating, es.rating "
-        "FROM played_matches AS pm "
+        "SELECT pm2.match_id, pm2.player_id, ec.rating, es.rating "
+        "FROM played_matches AS pm2 "
         "INNER JOIN elo_combined AS ec "
-        "   ON pm.id = ec.played_match_id "
+        "   ON pm2.id = ec.played_match_id "
         "INNER JOIN elo_separate AS es "
-        "   ON pm.id = es.played_match_id "
-        "WHERE pm.match_id IN ( "
-        "   SELECT pm2.match_id FROM played_matches AS pm2 WHERE pm2.player_id = %1"
+        "   ON pm2.id = es.played_match_id "
+        "WHERE pm2.match_id IN ( "
+        "   SELECT pm.match_id "
+        "   FROM played_matches AS pm "
+        "   INNER JOIN matches AS m ON pm.match_id = m.id "
+        + whereString + orderString + limitString +
         ") "
     );
 
-    QSqlQuery eloQuery(eloQueryString.arg(player->id), *db);
+    QSqlQuery eloQuery(eloQueryString, *db);
     while (eloQuery.next()) {
         const int matchId = eloQuery.value(0).toInt();
         const int playerId = eloQuery.value(1).toInt();
@@ -293,9 +310,7 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, EloDomain 
     //
     // Now read all match details
     //
-    const QString filterString =
-            (domain == EloDomain::Single) ? "AND m.type = 1 " :
-            (domain == EloDomain::Double) ? "AND m.type = 2 " : "";
+
     QString queryString =
         "SELECT pm.match_id, "
         "       m.type, m.score1, m.score2, m.p1, m.p2, m.p11, m.p22, "
@@ -306,14 +321,7 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, EloDomain 
         "INNER JOIN competitions AS c ON m.competition_id = c.id "
         "INNER JOIN elo_separate AS es ON pm.id = es.played_match_id "
         "INNER JOIN elo_combined AS ec ON pm.id = ec.played_match_id "
-        "WHERE pm.player_id = %1 " + filterString +
-        "ORDER BY pm.id DESC ";
-
-    if (start > 0 || count > 0) {
-        if (count < 0)
-            count = 100000;
-        queryString += QString("LIMIT %1 OFFSET %2").arg(count).arg(start);
-    }
+        + whereString + orderString + limitString;
 
     QSqlQuery query(queryString.arg(player->id), *db);
 

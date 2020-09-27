@@ -127,29 +127,29 @@ void Database::readData()
     );
     QSqlQuery ratingsQuery(ratingsQueryString, *db);
 
-    while (ratingsQuery.next()) {
-        const int playerId = ratingsQuery.value(0).toInt();
-        const MatchType matchType = (MatchType) ratingsQuery.value(1).toInt();
-        const QDateTime date = QDateTime::fromSecsSinceEpoch(ratingsQuery.value(2).toLongLong());
-        const int eloCombined = ratingsQuery.value(3).toInt();
-        const int eloSeparate = ratingsQuery.value(4).toInt();
+//    while (ratingsQuery.next()) {
+//        const int playerId = ratingsQuery.value(0).toInt();
+//        const MatchType matchType = (MatchType) ratingsQuery.value(1).toInt();
+//        const QDateTime date = QDateTime::fromSecsSinceEpoch(ratingsQuery.value(2).toLongLong());
+//        const int eloCombined = ratingsQuery.value(3).toInt();
+//        const int eloSeparate = ratingsQuery.value(4).toInt();
 
-        auto it = m_players.find(playerId);
-        if (it != m_players.end()) {
-            if (it->progression.isEmpty()) {
-                it->progression << Player::EloProgression(date, eloSeparate, eloSeparate, eloCombined);
-            }
-            else {
-                int s = it->progression.last().eloSingle;
-                int d = it->progression.last().eloDouble;
-                if (matchType == MatchType::Single)
-                    s = eloSeparate;
-                else
-                    d = eloSeparate;
-                it->progression << Player::EloProgression(date, s, d, eloCombined);
-            }
-        }
-    }
+//        auto it = m_players.find(playerId);
+//        if (it != m_players.end()) {
+//            if (it->progression.isEmpty()) {
+//                it->progression << Player::EloProgression(date, eloSeparate, eloSeparate, eloCombined);
+//            }
+//            else {
+//                int s = it->progression.last().eloSingle;
+//                int d = it->progression.last().eloDouble;
+//                if (matchType == MatchType::Single)
+//                    s = eloSeparate;
+//                else
+//                    d = eloSeparate;
+//                it->progression << Player::EloProgression(date, s, d, eloCombined);
+//            }
+//        }
+//    }
 
     QSqlQuery matchCountQuery(
         "SELECT player_id, COUNT(*) "

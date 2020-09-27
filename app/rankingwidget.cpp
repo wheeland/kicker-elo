@@ -30,16 +30,18 @@ RankingWidget::RankingWidget()
     m_layout = new WVBoxLayout();
     setLayout(std::unique_ptr<WVBoxLayout>(m_layout));
 
-    WContainerWidget *search = addToLayout<WContainerWidget>(m_layout);
-    WText *searchText = search->addWidget(make_unique<WText>("Search: "));
-    searchText->setMargin(10);
-    m_searchBar = search->addWidget(make_unique<WLineEdit>(""));
-    m_searchBar->setWidth("30%");
-    m_searchBar->textInput().connect(this, &RankingWidget::updateSearch);
+    //
+    // Add title
+    //
+    WText *titleText = addToLayout<WText>(m_layout);
+    titleText->setText("<h1>TFVB ELO Ranking</h1>");
+    titleText->setTextAlignment(AlignmentFlag::Center);
 
+    //
+    // Add rankings table
+    //
     m_table = addToLayout<WTable>(m_layout);
 
-    // setup table headers
     m_table->insertRow(0)->setHeight("2em");
     m_table->insertColumn(0)->setWidth("10%");
     m_table->insertColumn(1)->setWidth("35%");
@@ -57,10 +59,34 @@ RankingWidget::RankingWidget()
     m_table->elementAt(0, 4)->addWidget(make_unique<WText>("<b>Double</b>"));
     m_table->elementAt(0, 5)->addWidget(make_unique<WText>("<b># Games</b>"));
 
+    //
+    // Add search bar
+    //
+    WContainerWidget *search = addToLayout<WContainerWidget>(m_layout);
+    search->setWidth("80%");
+    search->setMargin(WLength::Auto, Side::Left | Side::Right);
+
+    WText *searchText = search->addWidget(make_unique<WText>("Search: "));
+    searchText->setMargin("5%", Side::Left | Side::Right);
+    searchText->decorationStyle().font().setSize("150%");
+
+    m_searchBar = search->addWidget(make_unique<WLineEdit>(""));
+    m_searchBar->setWidth("70%");
+    m_searchBar->decorationStyle().font().setSize("130%");
+    m_searchBar->textInput().connect(this, &RankingWidget::updateSearch);
+
+    //
+    // Add next/prev buttons
+    //
     WContainerWidget *buttons = addToLayout<WContainerWidget>(m_layout);
+    buttons->setWidth("30%");
+    buttons->setMargin(WLength::Auto, Side::Left | Side::Right);
+    buttons->setMargin("2%", Side::Top);
 
     m_prevButton = buttons->addWidget(make_unique<WPushButton>("Prev"));
+    m_prevButton->setFloatSide(Side::Left);
     m_nextButton = buttons->addWidget(make_unique<WPushButton>("Next"));
+    m_nextButton->setFloatSide(Side::Right);
 
     m_prevButton->clicked().connect(this, &RankingWidget::prev);
     m_nextButton->clicked().connect(this, &RankingWidget::next);

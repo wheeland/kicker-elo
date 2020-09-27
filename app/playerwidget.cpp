@@ -27,6 +27,13 @@ static std::string player2str(const FoosDB::Player *player)
     return player ? (player->firstName + " " + player->lastName).toStdString() : "";
 }
 
+void sortPvp(QVector<FoosDB::PlayerVsPlayerStats> &list, qint16 FoosDB::PlayerVsPlayerStats::*member)
+{
+    std::sort(list.begin(), list.end(), [=](const FoosDB::PlayerVsPlayerStats &a, const FoosDB::PlayerVsPlayerStats &b) {
+        return a.*member < b.*member;
+    });
+}
+
 PlayerWidget::PlayerWidget(int playerId)
     : m_db(FoosDB::Database::instance())
 {
@@ -179,11 +186,11 @@ void PlayerWidget::updateOpponents()
     if (!m_player)
         return;
 
-//    const auto getstr = [](const QVector<OtherPlayerStats> &stats, int idx) {
+//    const auto getstr = [](const QVector<FoosDB::PlayerVsPlayerStats> &stats, int idx) {
 //        if (qAbs(idx) > stats.size())
 //            return std::string();
 //        const int realIdx = (idx > 0) ? (idx - 1) : (stats.size() + idx);
-//        const OtherPlayerStats ops = stats.value(realIdx);
+//        const FoosDB::PlayerVsPlayerStats ops = stats.value(realIdx);
 //        return "<p><b>" + player2str(ops.player) + "</b>: " +
 //                diff2str(ops.eloDelta) + " <i>(" + num2str(ops.matchCount) + " matches)</i></p>";
 //    };
@@ -197,6 +204,12 @@ void PlayerWidget::updateOpponents()
     m_opponents->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Poor Souls</b>"));
     m_opponents->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Idiots</b>"));
     m_opponents->elementAt(0, 3)->addWidget(make_unique<WText>("<b>Heroes</b>"));
+
+    QVector<FoosDB::PlayerVsPlayerStats> opponents = m_pvpStats;
+    QVector<FoosDB::PlayerVsPlayerStats> partners = m_pvpStats;
+
+    sortPvp(opponents, &FoosDB::PlayerVsPlayerStats::combinedDiff);
+    sortPvp(partners, &FoosDB::PlayerVsPlayerStats::partnerDoubleDiff);
 
 //    for (int i = 1 ; i <= 3; ++i) {
 //        const std::string o1 = getstr(m_combinedStats.m_opponentDelta, i);

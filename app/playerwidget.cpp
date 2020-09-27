@@ -57,19 +57,19 @@ PlayerWidget::PlayerWidget(FoosDB::Database *db, int playerId)
     //
     // setup matches table
     //
-    m_matches = addWidget(make_unique<WTable>());
-    m_matches->insertRow(0)->setHeight("2em");
-    m_matches->insertColumn(0)->setWidth("15vw");
-    m_matches->insertColumn(1)->setWidth("15vw");
-    m_matches->insertColumn(2)->setWidth("5vw");
-    m_matches->insertColumn(3)->setWidth("15vw");
-    m_matches->insertColumn(4)->setWidth("15vw");
+    m_matchesTable = addWidget(make_unique<WTable>());
+    m_matchesTable->insertRow(0)->setHeight("2em");
+    m_matchesTable->insertColumn(0)->setWidth("15vw");
+    m_matchesTable->insertColumn(1)->setWidth("15vw");
+    m_matchesTable->insertColumn(2)->setWidth("5vw");
+    m_matchesTable->insertColumn(3)->setWidth("15vw");
+    m_matchesTable->insertColumn(4)->setWidth("15vw");
 
-    m_matches->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Competition</b>"));
-    m_matches->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Team 1</b>"));
-    m_matches->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Score</b>"));
-    m_matches->elementAt(0, 3)->addWidget(make_unique<WText>("<b>Team 2</b>"));
-    m_matches->elementAt(0, 4)->addWidget(make_unique<WText>("<b>ELO</b>"));
+    m_matchesTable->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Competition</b>"));
+    m_matchesTable->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Team 1</b>"));
+    m_matchesTable->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Score</b>"));
+    m_matchesTable->elementAt(0, 3)->addWidget(make_unique<WText>("<b>Team 2</b>"));
+    m_matchesTable->elementAt(0, 4)->addWidget(make_unique<WText>("<b>ELO</b>"));
 
     //
     // setup buttons
@@ -94,59 +94,33 @@ void PlayerWidget::setPlayerId(int id)
     m_page = 0;
 
     if (m_player) {
-        m_playerMatches = m_db->getPlayerMatches(m_player);
-        m_playerProgression = m_db->getPlayerEloProgression(m_player);
+        m_pvpStats = m_db->getPlayerVsPlayerStats(m_player);
+        m_matches = m_db->getPlayerMatches(m_player);
+        m_progression = m_db->getPlayerEloProgression(m_player);
     } else {
-        m_playerMatches.clear();
-        m_playerProgression.clear();
+        m_pvpStats.clear();
+        m_matches.clear();
+        m_progression.clear();
     }
 
     //
-    // Update Peak ELO statistics and player matchups
+    // Update Peak ELO statistics
     //
-    QHash<const FoosDB::Player*, OtherPlayerStats> oc, os, od, pc, pd;
-    m_combinedStats = m_doubleStats = m_singleStats = EloStats();
-    for (const FoosDB::PlayerMatch &pm : m_playerMatches) {
-        m_combinedStats.peak = qMax(m_combinedStats.peak, pm.myself.eloCombined);
-
-        if (pm.matchType == FoosDB::MatchType::Single) {
-            m_singleStats.peak = qMax(m_singleStats.peak, pm.myself.eloSeparate);
-            os[pm.opponent1.player].play(pm.eloSeparateDiff);
-            oc[pm.opponent1.player].play(pm.eloCombinedDiff);
-        }
-        else {
-            m_doubleStats.peak = qMax(m_doubleStats.peak, pm.myself.eloSeparate);
-            od[pm.opponent1.player].play(pm.eloSeparateDiff);
-            oc[pm.opponent1.player].play(pm.eloCombinedDiff);
-            od[pm.opponent2.player].play(pm.eloSeparateDiff);
-            oc[pm.opponent2.player].play(pm.eloCombinedDiff);
-            pd[pm.partner.player].play(pm.eloSeparateDiff);
-            pc[pm.partner.player].play(pm.eloCombinedDiff);
-        }
+    m_peakSingle = m_peakDouble = m_peakCombined = 0;
+    for (const FoosDB::PlayerEloProgression &progression : m_progression) {
+        m_peakSingle = qMax(m_peakSingle, progression.eloSingle);
+        m_peakDouble = qMax(m_peakDouble, progression.eloDouble);
+        m_peakCombined = qMax(m_peakCombined, progression.eloCombined);
     }
-    const auto toVec = [](const QHash<const FoosDB::Player*, OtherPlayerStats> &h) {
-        QVector<OtherPlayerStats> ret;
-        for (auto it = h.begin(); it != h.end(); ++it) {
-            ret << it.value();
-            ret.back().player = it.key();
-        }
-        std::sort(ret.begin(), ret.end());
-        return ret;
-    };
-    m_combinedStats.m_partnerDelta = toVec(pc);
-    m_combinedStats.m_opponentDelta = toVec(oc);
-    m_doubleStats.m_partnerDelta = toVec(pd);
-    m_doubleStats.m_opponentDelta = toVec(od);
-    m_singleStats.m_opponentDelta = toVec(os);
 
     if (m_player) {
         const auto eloText = [](const std::string &name, int curr, int peak) {
             return "<p><b>" + name + ": " + num2str(curr) + " (Peak: " + num2str(peak) + ")</b></p>";
         };
         m_title->setText("<b>" + player2str(m_player) + "</b>");
-        m_eloCombind->setText(eloText("Combined", (int) m_player->eloCombined, m_combinedStats.peak));
-        m_eloDouble->setText(eloText("Double", (int) m_player->eloDouble, m_doubleStats.peak));
-        m_eloSingle->setText(eloText("Single", (int) m_player->eloSingle, m_singleStats.peak));
+        m_eloCombind->setText(eloText("Combined", (int) m_player->eloCombined, m_peakCombined));
+        m_eloDouble->setText(eloText("Double", (int) m_player->eloDouble, m_peakDouble));
+        m_eloSingle->setText(eloText("Single", (int) m_player->eloSingle, m_peakSingle));
     } else {
         m_title->setText("Invalid Player");
         m_eloCombind->setText("");
@@ -173,20 +147,20 @@ void PlayerWidget::next()
 
 void PlayerWidget::updateChart()
 {
-    if (m_playerMatches.isEmpty())
+    if (m_matches.isEmpty())
         return;
 
-    int eloSingle = m_playerMatches.first().myself.eloSeparate;
-    int eloDouble = m_playerMatches.first().myself.eloSeparate;
+    int eloSingle = m_matches.first().myself.eloSeparate;
+    int eloDouble = m_matches.first().myself.eloSeparate;
 
-    m_eloModel = std::make_shared<Wt::WStandardItemModel>(m_playerMatches.size(), 4);
+    m_eloModel = std::make_shared<Wt::WStandardItemModel>(m_matches.size(), 4);
     m_eloModel->setHeaderData(0, WString("Date"));
     m_eloModel->setHeaderData(1, WString("Combined"));
     m_eloModel->setHeaderData(2, WString("Double"));
     m_eloModel->setHeaderData(3, WString("Single"));
 
-    for (int i = 0; i < m_playerMatches.size(); ++i) {
-        const FoosDB::PlayerMatch &pm = m_playerMatches[i];
+    for (int i = 0; i < m_matches.size(); ++i) {
+        const FoosDB::PlayerMatch &pm = m_matches[i];
 
         const WDate date(pm.date.date().year(), pm.date.date().month(), pm.date.date().day());
 
@@ -217,14 +191,14 @@ void PlayerWidget::updateOpponents()
     if (!m_player)
         return;
 
-    const auto getstr = [](const QVector<OtherPlayerStats> &stats, int idx) {
-        if (qAbs(idx) > stats.size())
-            return std::string();
-        const int realIdx = (idx > 0) ? (idx - 1) : (stats.size() + idx);
-        const OtherPlayerStats ops = stats.value(realIdx);
-        return "<p><b>" + player2str(ops.player) + "</b>: " +
-                diff2str(ops.eloDelta) + " <i>(" + num2str(ops.matchCount) + " matches)</i></p>";
-    };
+//    const auto getstr = [](const QVector<OtherPlayerStats> &stats, int idx) {
+//        if (qAbs(idx) > stats.size())
+//            return std::string();
+//        const int realIdx = (idx > 0) ? (idx - 1) : (stats.size() + idx);
+//        const OtherPlayerStats ops = stats.value(realIdx);
+//        return "<p><b>" + player2str(ops.player) + "</b>: " +
+//                diff2str(ops.eloDelta) + " <i>(" + num2str(ops.matchCount) + " matches)</i></p>";
+//    };
 
     m_opponents->insertRow(0)->setHeight("2em");
     m_opponents->insertColumn(0)->setWidth("15vw");
@@ -236,67 +210,67 @@ void PlayerWidget::updateOpponents()
     m_opponents->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Idiots</b>"));
     m_opponents->elementAt(0, 3)->addWidget(make_unique<WText>("<b>Heroes</b>"));
 
-    for (int i = 1 ; i <= 3; ++i) {
-        const std::string o1 = getstr(m_combinedStats.m_opponentDelta, i);
-        const std::string o2 = getstr(m_combinedStats.m_opponentDelta, -i);
-        const std::string p1 = getstr(m_combinedStats.m_partnerDelta, i);
-        const std::string p2 = getstr(m_combinedStats.m_partnerDelta, -i);
+//    for (int i = 1 ; i <= 3; ++i) {
+//        const std::string o1 = getstr(m_combinedStats.m_opponentDelta, i);
+//        const std::string o2 = getstr(m_combinedStats.m_opponentDelta, -i);
+//        const std::string p1 = getstr(m_combinedStats.m_partnerDelta, i);
+//        const std::string p2 = getstr(m_combinedStats.m_partnerDelta, -i);
 
-        if (o1.empty() && o2.empty() && p1.empty() && p2.empty())
-            break;
+//        if (o1.empty() && o2.empty() && p1.empty() && p2.empty())
+//            break;
 
-        m_opponents->insertRow(m_opponents->rowCount() - 1)->setHeight("1.8em");;
-        const int n = m_opponents->rowCount() - 1;
-        m_opponents->elementAt(n, 0)->addWidget(make_unique<WText>(o1));
-        m_opponents->elementAt(n, 1)->addWidget(make_unique<WText>(o2));
-        m_opponents->elementAt(n, 2)->addWidget(make_unique<WText>(p1));
-        m_opponents->elementAt(n, 3)->addWidget(make_unique<WText>(p2));
-    }
+//        m_opponents->insertRow(m_opponents->rowCount() - 1)->setHeight("1.8em");;
+//        const int n = m_opponents->rowCount() - 1;
+//        m_opponents->elementAt(n, 0)->addWidget(make_unique<WText>(o1));
+//        m_opponents->elementAt(n, 1)->addWidget(make_unique<WText>(o2));
+//        m_opponents->elementAt(n, 2)->addWidget(make_unique<WText>(p1));
+//        m_opponents->elementAt(n, 3)->addWidget(make_unique<WText>(p2));
+//    }
 }
 
 void PlayerWidget::updateTable()
 {
     if (!m_player) {
-        while (m_matches->rowCount() > 1)
-            m_matches->removeRow(m_matches->rowCount() - 1);
+        while (m_matchesTable->rowCount() > 1)
+            m_matchesTable->removeRow(m_matchesTable->rowCount() - 1);
         return;
     }
 
     m_page = qMin(m_page, m_player->matchCount / m_entriesPerPage);
     const int count = qMin(m_player->matchCount - m_page * m_entriesPerPage, m_entriesPerPage);
 
-    while (m_matches->rowCount() - 1 < count) {
-        const int n = m_matches->rowCount();
+    while (m_matchesTable->rowCount() - 1 < count) {
+        const int n = m_matchesTable->rowCount();
 
         Row row;
-        m_matches->insertRow(n)->setHeight("1.8em");
+        m_matchesTable->insertRow(n)->setHeight("1.8em");
 
-        WContainerWidget *competitionWidget = m_matches->elementAt(n, 0)->addWidget(make_unique<WContainerWidget>());
+        WContainerWidget *competitionWidget = m_matchesTable->elementAt(n, 0)->addWidget(make_unique<WContainerWidget>());
         row.date = competitionWidget->addWidget(make_unique<WText>());
         row.competition = competitionWidget->addWidget(make_unique<WText>());
 
-        WContainerWidget *player1Widget = m_matches->elementAt(n, 1)->addWidget(make_unique<WContainerWidget>());
+        WContainerWidget *player1Widget = m_matchesTable->elementAt(n, 1)->addWidget(make_unique<WContainerWidget>());
         row.player1  = player1Widget->addWidget(make_unique<WAnchor>());
         row.player11 = player1Widget->addWidget(make_unique<WAnchor>());
 
-        row.score = m_matches->elementAt(n, 2)->addWidget(make_unique<WText>());
+        row.score = m_matchesTable->elementAt(n, 2)->addWidget(make_unique<WText>());
 
-        WContainerWidget *player2Widget = m_matches->elementAt(n, 3)->addWidget(make_unique<WContainerWidget>());
+        WContainerWidget *player2Widget = m_matchesTable->elementAt(n, 3)->addWidget(make_unique<WContainerWidget>());
         row.player2  = player2Widget->addWidget(make_unique<WAnchor>());
         row.player22 = player2Widget->addWidget(make_unique<WAnchor>());
 
-        row.eloCombined = m_matches->elementAt(n, 4)->addWidget(make_unique<WText>());
+        row.eloCombined = m_matchesTable->elementAt(n, 4)->addWidget(make_unique<WText>());
 
         m_rows << row;
     }
 
-    while (m_matches->rowCount() - 1 > count) {
-        m_matches->removeRow(m_matches->rowCount() - 1);
+    while (m_matchesTable->rowCount() - 1 > count) {
+        m_matchesTable->removeRow(m_matchesTable->rowCount() - 1);
         m_rows.removeLast();
     }
 
     for (int i = 0; i < count; ++i) {
-        const FoosDB::PlayerMatch &m = m_playerMatches[m_playerMatches.size() - 1 - (i + m_page * m_entriesPerPage)];
+        const FoosDB::PlayerMatch &m = m_matches[m_matches.size() - 1 - (i + m_page * m_entriesPerPage)];
 
         m_rows[i].date->setText("<p><small><i>" + date2str(m.date) + "</i></small></p>");
         m_rows[i].competition->setText("<p><small>" + m.competitionName.toStdString() + "</small></p>");

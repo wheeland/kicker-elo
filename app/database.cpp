@@ -180,6 +180,54 @@ QVector<PlayerEloProgression> Database::getPlayerEloProgression(const Player *pl
     return ret;
 }
 
+QVector<PlayerVsPlayerStats> Database::getPlayerVsPlayerStats(const Player *player)
+{
+    Profiler prof("pvp");
+
+    QSqlDatabase *db = getOrCreateDb();
+    QVector<PlayerVsPlayerStats> ret;
+
+    const QString queryString(
+        "SELECT other_id, "
+        "single_wins, single_draws, single_losses, "
+        "double_wins, double_draws, double_losses, "
+        "partner_wins, partner_draws, partner_losses, "
+        "combined_delta, double_delta, single_delta, "
+        "partner_combined_delta, partner_double_delta "
+        "FROM player_vs_player_stats AS pvp"
+        "WHERE pvp.player_id = %1"
+    );
+
+    QSqlQuery query(queryString.arg(player->id), *db);
+    while (query.next()) {
+        const int otherId = query.value(0).toInt();
+        const qint16 singleWins = query.value(1).toInt();
+        const qint16 singleDraws = query.value(2).toInt();
+        const qint16 singleLosses = query.value(3).toInt();
+        const qint16 doubleWins = query.value(4).toInt();
+        const qint16 doubleDraws = query.value(5).toInt();
+        const qint16 doubleLosses = query.value(6).toInt();
+        const qint16 partnerWins = query.value(7).toInt();
+        const qint16 partnerDraws = query.value(8).toInt();
+        const qint16 partnerLosses = query.value(9).toInt();
+        const qint16 combinedDelta = query.value(10).toInt();
+        const qint16 doubleDelta = query.value(11).toInt();
+        const qint16 singleDelta = query.value(12).toInt();
+        const qint16 partnerCombinedDelta = query.value(13).toInt();
+        const qint16 partnerDoubleDelta = query.value(14).toInt();
+        ret << PlayerVsPlayerStats{
+            getPlayer(otherId),
+            singleWins, singleDraws, singleLosses,
+            doubleWins, doubleDraws, doubleLosses,
+            partnerWins, partnerDraws, partnerLosses,
+            combinedDelta, doubleDelta, singleDelta,
+            partnerCombinedDelta, partnerDoubleDelta
+        };
+    }
+
+    return ret;
+}
+
 QVector<PlayerMatch> Database::getPlayerMatches(const Player *player)
 {
     Profiler prof("matches");
@@ -289,7 +337,6 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player)
     }
 
     return ret;
-
 }
 
 } // namespace FoosDB

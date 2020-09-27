@@ -54,6 +54,16 @@ struct PlayerEloProgression
     int eloCombined;
 };
 
+struct PlayerVsPlayerStats
+{
+    const Player *player;
+    qint16 singleWins = 0, singleDraws = 0, singleLosses = 0;
+    qint16 doubleWins = 0, doubleDraws = 0, doubleLosses = 0;
+    qint16 partnerWins = 0, partnerDraws = 0, partnerLosses = 0;
+    qint16 singleDiff = 0, doubleDiff = 0, combinedDiff = 0;
+    qint16 partnerCombinedDiff = 0, partnerDoubleDiff = 0;
+};
+
 struct PlayerMatch
 {
     QDateTime date;
@@ -92,6 +102,7 @@ public:
 
     QVector<PlayerEloProgression> getPlayerEloProgression(const Player *player);
     QVector<PlayerMatch> getPlayerMatches(const Player *player);
+    QVector<PlayerVsPlayerStats> getPlayerVsPlayerStats(const Player *player);
 
 private:
     void readData();

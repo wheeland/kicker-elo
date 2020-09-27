@@ -30,33 +30,20 @@ private:
 
     int m_playerId;
     const FoosDB::Player *m_player = nullptr;
-    QVector<FoosDB::PlayerEloProgression> m_playerProgression;
-    QVector<FoosDB::PlayerMatch> m_playerMatches;
+    QVector<FoosDB::PlayerVsPlayerStats> m_pvpStats;
+    QVector<FoosDB::PlayerEloProgression> m_progression;
+    QVector<FoosDB::PlayerMatch> m_matches;
 
-    struct OtherPlayerStats {
-        const FoosDB::Player *player = nullptr;
-        int eloDelta = 0;
-        int matchCount = 0;
-        bool operator<(const OtherPlayerStats &other) const { return eloDelta < other.eloDelta; }
-        void play(int delta) { eloDelta += delta; matchCount++; }
-    };
-
-    struct EloStats {
-        int peak = 0;
-        QVector<OtherPlayerStats> m_opponentDelta;
-        QVector<OtherPlayerStats> m_partnerDelta;
-        void reset();
-    };
-    EloStats m_combinedStats;
-    EloStats m_doubleStats;
-    EloStats m_singleStats;
+    int m_peakSingle;
+    int m_peakDouble;
+    int m_peakCombined;
 
     Wt::WText *m_title;
     Wt::WText *m_eloCombind;
     Wt::WText *m_eloDouble;
     Wt::WText *m_eloSingle;
     Wt::WTable *m_opponents;
-    Wt::WTable *m_matches;
+    Wt::WTable *m_matchesTable;
     Wt::WPushButton *m_prevButton;
     Wt::WPushButton *m_nextButton;
 

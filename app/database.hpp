@@ -100,8 +100,9 @@ public:
     QVector<const Player*> searchPlayer(const QString &pattern) const;
     QVector<const Player*> getPlayersByRanking(EloDomain domain, int start = 0, int count = -1) const;
 
+    int getPlayerMatchCount(const Player *player, EloDomain domain);
     QVector<PlayerEloProgression> getPlayerEloProgression(const Player *player);
-    QVector<PlayerMatch> getPlayerMatches(const Player *player);
+    QVector<PlayerMatch> getPlayerMatches(const Player *player, EloDomain domain, int start = 0, int count = -1);
     QVector<PlayerVsPlayerStats> getPlayerVsPlayerStats(const Player *player);
 
 private:

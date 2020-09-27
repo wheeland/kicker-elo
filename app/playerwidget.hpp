@@ -24,19 +24,20 @@ private:
     void next();
     void updateChart();
     void updateOpponents();
-    void updateTable();
+    void updateMatchTable();
 
     FoosDB::Database *m_db;
 
-    int m_playerId;
+    int m_playerId = 0;
     const FoosDB::Player *m_player = nullptr;
     QVector<FoosDB::PlayerVsPlayerStats> m_pvpStats;
     QVector<FoosDB::PlayerEloProgression> m_progression;
-    QVector<FoosDB::PlayerMatch> m_matches;
 
-    int m_peakSingle;
-    int m_peakDouble;
-    int m_peakCombined;
+    int m_singleCount = 0;
+    int m_doubleCount = 0;
+    int m_peakSingle = 0;
+    int m_peakDouble = 0;
+    int m_peakCombined = 0;
 
     Wt::WText *m_title;
     Wt::WText *m_eloCombind;
@@ -49,6 +50,7 @@ private:
 
     int m_page = 0;
     int m_entriesPerPage = 20;
+    FoosDB::EloDomain m_displayedDomain = FoosDB::EloDomain::Single;
 
     struct Row {
         // column 1

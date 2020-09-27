@@ -130,6 +130,33 @@ QVector<const Player*> Database::getPlayersByRanking(EloDomain domain, int start
     return ret;
 }
 
+int Database::getPlayerMatchCount(const Player *player, EloDomain domain)
+{
+    QSqlDatabase *db = getOrCreateDb();
+    const QString queryString(
+        "SELECT m.type, COUNT(m.type) "
+        "FROM played_matches AS pm "
+        "INNER JOIN matches AS m "
+        "   ON pm.match_id = m.id "
+        "WHERE pm.player_id = %1 "
+        "GROUP BY m.type"
+    );
+
+    int counts[2] = {0, 0};
+
+    QSqlQuery query(queryString.arg(player->id), *db);
+    while (query.next()) {
+        const int domainIdx = query.value(0).toInt();
+        const int count = query.value(1).toInt();
+        if (domainIdx >= 1 && domainIdx <= 2)
+            counts[domainIdx - 1] = count;
+    }
+
+    return (domain == EloDomain::Single) ? counts[0] :
+           (domain == EloDomain::Double) ? counts[1] :
+           (domain == EloDomain::Combined) ? counts[0] + counts[1] : 0;
+}
+
 QVector<PlayerEloProgression> Database::getPlayerEloProgression(const Player *player)
 {
     Profiler prof("progression");
@@ -228,7 +255,7 @@ QVector<PlayerVsPlayerStats> Database::getPlayerVsPlayerStats(const Player *play
     return ret;
 }
 
-QVector<PlayerMatch> Database::getPlayerMatches(const Player *player)
+QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, EloDomain domain, int start, int count)
 {
     Profiler prof("matches");
 
@@ -253,6 +280,7 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player)
         "   SELECT pm2.match_id FROM played_matches AS pm2 WHERE pm2.player_id = %1"
         ") "
     );
+
     QSqlQuery eloQuery(eloQueryString.arg(player->id), *db);
     while (eloQuery.next()) {
         const int matchId = eloQuery.value(0).toInt();
@@ -265,7 +293,10 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player)
     //
     // Now read all match details
     //
-    const QString queryString =
+    const QString filterString =
+            (domain == EloDomain::Single) ? "AND m.type = 1 " :
+            (domain == EloDomain::Double) ? "AND m.type = 2 " : "";
+    QString queryString =
         "SELECT pm.match_id, "
         "       m.type, m.score1, m.score2, m.p1, m.p2, m.p11, m.p22, "
         "       c.name, c.date, c.type, "
@@ -275,8 +306,14 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player)
         "INNER JOIN competitions AS c ON m.competition_id = c.id "
         "INNER JOIN elo_separate AS es ON pm.id = es.played_match_id "
         "INNER JOIN elo_combined AS ec ON pm.id = ec.played_match_id "
-        "WHERE pm.player_id = %1 "
-        "ORDER BY pm.id ";
+        "WHERE pm.player_id = %1 " + filterString +
+        "ORDER BY pm.id DESC ";
+
+    if (start > 0 || count > 0) {
+        if (count < 0)
+            count = 100000;
+        queryString += QString("LIMIT %1 OFFSET %2").arg(count).arg(start);
+    }
 
     QSqlQuery query(queryString.arg(player->id), *db);
 

@@ -95,12 +95,14 @@ void PlayerWidget::setPlayerId(int id)
 
     if (m_player) {
         m_pvpStats = m_db->getPlayerVsPlayerStats(m_player);
-        m_matches = m_db->getPlayerMatches(m_player);
         m_progression = m_db->getPlayerEloProgression(m_player);
+        m_singleCount = m_db->getPlayerMatchCount(m_player, FoosDB::EloDomain::Single);
+        m_doubleCount = m_db->getPlayerMatchCount(m_player, FoosDB::EloDomain::Double);
     } else {
         m_pvpStats.clear();
-        m_matches.clear();
         m_progression.clear();
+        m_singleCount = 0;
+        m_doubleCount = 0;
     }
 
     //
@@ -130,49 +132,36 @@ void PlayerWidget::setPlayerId(int id)
 
     updateChart();
     updateOpponents();
-    updateTable();
+    updateMatchTable();
 }
 
 void PlayerWidget::prev()
 {
     m_page = qMax(m_page - 1, 0);
-    updateTable();
+    updateMatchTable();
 }
 
 void PlayerWidget::next()
 {
     m_page++;
-    updateTable();
+    updateMatchTable();
 }
 
 void PlayerWidget::updateChart()
 {
-    if (m_matches.isEmpty())
-        return;
-
-    int eloSingle = m_matches.first().myself.eloSeparate;
-    int eloDouble = m_matches.first().myself.eloSeparate;
-
-    m_eloModel = std::make_shared<Wt::WStandardItemModel>(m_matches.size(), 4);
+    m_eloModel = std::make_shared<Wt::WStandardItemModel>(m_progression.size(), 4);
     m_eloModel->setHeaderData(0, WString("Date"));
     m_eloModel->setHeaderData(1, WString("Combined"));
     m_eloModel->setHeaderData(2, WString("Double"));
     m_eloModel->setHeaderData(3, WString("Single"));
 
-    for (int i = 0; i < m_matches.size(); ++i) {
-        const FoosDB::PlayerMatch &pm = m_matches[i];
-
-        const WDate date(pm.date.date().year(), pm.date.date().month(), pm.date.date().day());
-
-        if (pm.matchType == FoosDB::MatchType::Single)
-            eloSingle = pm.myself.eloSeparate;
-        else
-            eloDouble = pm.myself.eloSeparate;
-
+    for (int i = 0; i < m_progression.size(); ++i) {
+        const FoosDB::PlayerEloProgression pep = m_progression[i];
+        const WDate date(pep.date.date().year(), pep.date.date().month(), pep.date.date().day());
         m_eloModel->setData(i, 0, date);
-        m_eloModel->setData(i, 1, (float) pm.myself.eloCombined);
-        m_eloModel->setData(i, 2, (float) eloDouble);
-        m_eloModel->setData(i, 3, (float) eloSingle);
+        m_eloModel->setData(i, 1, (float) pep.eloCombined);
+        m_eloModel->setData(i, 2, (float) pep.eloDouble);
+        m_eloModel->setData(i, 3, (float) pep.eloSingle);
     }
 
     m_eloChart->setModel(m_eloModel);
@@ -228,7 +217,7 @@ void PlayerWidget::updateOpponents()
 //    }
 }
 
-void PlayerWidget::updateTable()
+void PlayerWidget::updateMatchTable()
 {
     if (!m_player) {
         while (m_matchesTable->rowCount() > 1)
@@ -236,8 +225,17 @@ void PlayerWidget::updateTable()
         return;
     }
 
-    m_page = qMin(m_page, m_player->matchCount / m_entriesPerPage);
-    const int count = qMin(m_player->matchCount - m_page * m_entriesPerPage, m_entriesPerPage);
+    const int totalMatchCount =
+            (m_displayedDomain == FoosDB::EloDomain::Single) ? m_singleCount :
+            (m_displayedDomain == FoosDB::EloDomain::Double) ? m_doubleCount :
+                                                               (m_singleCount + m_doubleCount);
+
+    m_page = qMin(m_page, totalMatchCount / m_entriesPerPage);
+    const int start = m_page * m_entriesPerPage;
+    int count = qMin(totalMatchCount - start, m_entriesPerPage);
+
+    const QVector<FoosDB::PlayerMatch> matches = m_db->getPlayerMatches(m_player, m_displayedDomain, start, count);
+    count = qMin(count, matches.size());
 
     while (m_matchesTable->rowCount() - 1 < count) {
         const int n = m_matchesTable->rowCount();
@@ -270,7 +268,7 @@ void PlayerWidget::updateTable()
     }
 
     for (int i = 0; i < count; ++i) {
-        const FoosDB::PlayerMatch &m = m_matches[m_matches.size() - 1 - (i + m_page * m_entriesPerPage)];
+        const FoosDB::PlayerMatch &m = matches[i];
 
         m_rows[i].date->setText("<p><small><i>" + date2str(m.date) + "</i></small></p>");
         m_rows[i].competition->setText("<p><small>" + m.competitionName.toStdString() + "</small></p>");

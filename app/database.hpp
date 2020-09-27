@@ -52,16 +52,21 @@ struct PlayerMatch
     CompetitionType competitionType;
     MatchType matchType;
 
-    const Player *partner;
-    const Player *opponent1;
-    const Player *opponent2;
+    struct Participant {
+        const Player *player = nullptr;
+        int eloSeparate = 0;
+        int eloCombined = 0;
+    };
+
+    Participant myself;
+    Participant partner;
+    Participant opponent1;
+    Participant opponent2;
 
     int myScore;
     int opponentScore;
 
-    int eloSeparate;
     int eloSeparateDiff;
-    int eloCombined;
     int eloCombinedDiff;
 };
 
@@ -76,7 +81,7 @@ public:
     QVector<const Player*> searchPlayer(const QString &pattern) const;
     QVector<const Player*> getPlayersByRanking(EloDomain domain, int start = 0, int count = -1) const;
 
-    QVector<PlayerMatch> getPlayerMatches(const Player *player, int start = 0, int count = -1);
+    QVector<PlayerMatch> getPlayerMatches(const Player *player);
 
 private:
     void readData();

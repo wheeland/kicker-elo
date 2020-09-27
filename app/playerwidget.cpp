@@ -104,21 +104,21 @@ void PlayerWidget::setPlayerId(int id)
     QHash<const FoosDB::Player*, OtherPlayerStats> oc, os, od, pc, pd;
     m_combinedStats = m_doubleStats = m_singleStats = EloStats();
     for (const FoosDB::PlayerMatch &pm : m_playerMatches) {
-        m_combinedStats.peak = qMax(m_combinedStats.peak, pm.eloCombined);
+        m_combinedStats.peak = qMax(m_combinedStats.peak, pm.myself.eloCombined);
 
         if (pm.matchType == FoosDB::MatchType::Single) {
-            m_singleStats.peak = qMax(m_singleStats.peak, pm.eloSeparate);
-            os[pm.opponent1].play(pm.eloSeparateDiff);
-            oc[pm.opponent1].play(pm.eloCombinedDiff);
+            m_singleStats.peak = qMax(m_singleStats.peak, pm.myself.eloSeparate);
+            os[pm.opponent1.player].play(pm.eloSeparateDiff);
+            oc[pm.opponent1.player].play(pm.eloCombinedDiff);
         }
         else {
-            m_doubleStats.peak = qMax(m_doubleStats.peak, pm.eloSeparate);
-            od[pm.opponent1].play(pm.eloSeparateDiff);
-            oc[pm.opponent1].play(pm.eloCombinedDiff);
-            od[pm.opponent2].play(pm.eloSeparateDiff);
-            oc[pm.opponent2].play(pm.eloCombinedDiff);
-            pd[pm.partner].play(pm.eloSeparateDiff);
-            pc[pm.partner].play(pm.eloCombinedDiff);
+            m_doubleStats.peak = qMax(m_doubleStats.peak, pm.myself.eloSeparate);
+            od[pm.opponent1.player].play(pm.eloSeparateDiff);
+            oc[pm.opponent1.player].play(pm.eloCombinedDiff);
+            od[pm.opponent2.player].play(pm.eloSeparateDiff);
+            oc[pm.opponent2.player].play(pm.eloCombinedDiff);
+            pd[pm.partner.player].play(pm.eloSeparateDiff);
+            pc[pm.partner.player].play(pm.eloCombinedDiff);
         }
     }
     const auto toVec = [](const QHash<const FoosDB::Player*, OtherPlayerStats> &h) {
@@ -173,9 +173,8 @@ void PlayerWidget::updateChart()
     if (m_playerMatches.isEmpty())
         return;
 
-    int eloCombined = m_playerMatches.first().eloCombined - m_playerMatches.first().eloCombinedDiff;
-    int eloSingle = eloCombined;
-    int eloDouble = eloCombined;
+    int eloSingle = m_playerMatches.first().myself.eloSeparate;
+    int eloDouble = m_playerMatches.first().myself.eloSeparate;
 
     m_eloModel = std::make_shared<Wt::WStandardItemModel>(m_playerMatches.size(), 4);
     m_eloModel->setHeaderData(0, WString("Date"));
@@ -188,14 +187,13 @@ void PlayerWidget::updateChart()
 
         const WDate date(pm.date.date().year(), pm.date.date().month(), pm.date.date().day());
 
-        eloCombined = pm.eloCombined;
         if (pm.matchType == FoosDB::MatchType::Single)
-            eloSingle = pm.eloSeparate;
+            eloSingle = pm.myself.eloSeparate;
         else
-            eloDouble = pm.eloSeparate;
+            eloDouble = pm.myself.eloSeparate;
 
         m_eloModel->setData(i, 0, date);
-        m_eloModel->setData(i, 1, (float) eloCombined);
+        m_eloModel->setData(i, 1, (float) pm.myself.eloCombined);
         m_eloModel->setData(i, 2, (float) eloDouble);
         m_eloModel->setData(i, 3, (float) eloSingle);
     }
@@ -314,16 +312,16 @@ void PlayerWidget::updateTable()
             return p ? Wt::WLink(LinkType::InternalPath, "/player/" + num2str(p->id)) : Wt::WLink();
         };
 
-        m_rows[i].player1 ->setText("<p>" + player2str(m_player) + "</p>");
-        m_rows[i].player11->setText("<p>" + player2str(m.partner) + "</p>");
-        m_rows[i].player2 ->setText("<p>" + player2str(m.opponent1) + "</p>");
-        m_rows[i].player22->setText("<p>" + player2str(m.opponent2) + "</p>");
+        m_rows[i].player1 ->setText("<p>" + player2str(m_player) + " " + num2str(m.myself.eloCombined) + "</p>");
+        m_rows[i].player11->setText("<p>" + player2str(m.partner.player) + " " + num2str(m.partner.eloCombined) + "</p>");
+        m_rows[i].player2 ->setText("<p>" + player2str(m.opponent1.player) + " " + num2str(m.opponent1.eloCombined) + "</p>");
+        m_rows[i].player22->setText("<p>" + player2str(m.opponent2.player) + " " + num2str(m.opponent2.eloCombined) + "</p>");
 
         m_rows[i].player1 ->setLink(playerLink(m_player));
-        m_rows[i].player11->setLink(playerLink(m.partner));
-        m_rows[i].player2 ->setLink(playerLink(m.opponent1));
-        m_rows[i].player22->setLink(playerLink(m.opponent2));
+        m_rows[i].player11->setLink(playerLink(m.partner.player));
+        m_rows[i].player2 ->setLink(playerLink(m.opponent1.player));
+        m_rows[i].player22->setLink(playerLink(m.opponent2.player));
 
-        m_rows[i].eloCombined->setText(ratingStr(m.eloCombined, m.eloCombinedDiff));
+        m_rows[i].eloCombined->setText(ratingStr(m.myself.eloCombined + m.eloCombinedDiff, m.eloCombinedDiff));
     }
 }

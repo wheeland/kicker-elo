@@ -123,18 +123,46 @@ QVector<const Player*> Database::getPlayersByRanking(EloDomain domain, int start
     return ret;
 }
 
-QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, int start, int count)
+QVector<PlayerMatch> Database::getPlayerMatches(const Player *player)
 {
-    const qint64 t0 = QDateTime::currentMSecsSinceEpoch();
-
     QSqlDatabase *db = getOrCreateDb();
     QVector<PlayerMatch> ret;
 
-    QString queryString =
+    using PlayedMatch = QPair<int, int>;
+    using CombinedSeparateElo = QPair<int, int>;
+    QHash<PlayedMatch, CombinedSeparateElo> matchElos;
+
+    //
+    // Read all ELO start rankings for all participants in all matches that the player has played
+    //
+    const QString eloQueryString(
+        "SELECT pm.match_id, pm.player_id, ec.rating, es.rating "
+        "FROM played_matches AS pm "
+        "INNER JOIN elo_combined AS ec "
+        "   ON pm.id = ec.played_match_id "
+        "INNER JOIN elo_separate AS es "
+        "   ON pm.id = es.played_match_id "
+        "WHERE pm.match_id IN ( "
+        "   SELECT pm2.match_id FROM played_matches AS pm2 WHERE pm2.player_id = %1"
+        ") "
+    );
+    QSqlQuery eloQuery(eloQueryString.arg(player->id), *db);
+    while (eloQuery.next()) {
+        const int matchId = eloQuery.value(0).toInt();
+        const int playerId = eloQuery.value(1).toInt();
+        const int ec = eloQuery.value(2).toInt();
+        const int es = eloQuery.value(3).toInt();
+        matchElos[qMakePair(matchId, playerId)] = qMakePair(ec, es);
+    }
+
+    //
+    // Now read all match details
+    //
+    const QString queryString =
         "SELECT pm.match_id, "
         "       m.type, m.score1, m.score2, m.p1, m.p2, m.p11, m.p22, "
         "       c.name, c.date, c.type, "
-        "       es.rating, es.change, ec.rating, ec.change "
+        "       es.change, ec.change "
         "FROM played_matches AS pm "
         "INNER JOIN matches AS m ON pm.match_id = m.id "
         "INNER JOIN competitions AS c ON m.competition_id = c.id "
@@ -143,17 +171,10 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, int start,
         "WHERE pm.player_id = %1 "
         "ORDER BY pm.id ";
 
-    if (start > 0 || count > 0) {
-        if (count <= 0)
-            count = 1000;
-        queryString += QString::asprintf("LIMIT %d OFFSET %d", count, start);
-    }
-
     QSqlQuery query(queryString.arg(player->id), *db);
 
-    const qint64 t1 = QDateTime::currentMSecsSinceEpoch();
-
     while (query.next()) {
+        const int matchId = query.value(0).toInt();
         const MatchType matchType = (MatchType) query.value(1).toInt();
         int score1 = query.value(2).toInt();
         int score2 = query.value(3).toInt();
@@ -164,10 +185,8 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, int start,
         const QString competiton = query.value(8).toString();
         const QDateTime date = QDateTime::fromSecsSinceEpoch(query.value(9).toLongLong());
         const CompetitionType compType = (CompetitionType) query.value(10).toInt();
-        const float es = query.value(11).toInt();
-        const float esc = query.value(12).toInt();
-        const float ec = query.value(13).toInt();
-        const float ecc = query.value(14).toInt();
+        const int esc = query.value(11).toInt();
+        const int ecc = query.value(12).toInt();
 
         if (p2 == player->id || p22 == player->id) {
             qSwap(p1, p2);
@@ -183,23 +202,32 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, int start,
         match.competitionType = compType;
         match.matchType = matchType;
 
-        match.partner = (matchType == MatchType::Double) ? &m_players[p11] : nullptr;
-        match.opponent1 = &m_players[p2];
-        match.opponent2 = (matchType == MatchType::Double) ? &m_players[p22] : nullptr;
+        match.myself.player = player;
+        match.myself.eloCombined = matchElos[qMakePair(matchId, player->id)].first;
+        match.myself.eloSeparate = matchElos[qMakePair(matchId, player->id)].second;
+
+        match.opponent1.player = &m_players[p2];
+        match.opponent1.eloCombined = matchElos[qMakePair(matchId, p2)].first;
+        match.opponent1.eloSeparate = matchElos[qMakePair(matchId, p2)].second;
+
+        if (matchType == MatchType::Double) {
+            match.partner.player = &m_players[p11];
+            match.partner.eloCombined = matchElos[qMakePair(matchId, p11)].first;
+            match.partner.eloSeparate = matchElos[qMakePair(matchId, p11)].second;
+
+            match.opponent2.player = &m_players[p22];
+            match.opponent2.eloCombined = matchElos[qMakePair(matchId, p22)].first;
+            match.opponent2.eloSeparate = matchElos[qMakePair(matchId, p22)].second;
+        }
 
         match.myScore = score1;
         match.opponentScore = score2;
 
-        match.eloSeparate = es;
         match.eloSeparateDiff = esc;
-        match.eloCombined = ec;
         match.eloCombinedDiff = ecc;
 
         ret << match;
     }
-
-    const qint64 t2 = QDateTime::currentMSecsSinceEpoch();
-    qWarning() << t2 -t1 << t1- t0;
 
     return ret;
 

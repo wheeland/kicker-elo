@@ -263,11 +263,15 @@ void Database::recompute()
     QVector<Match> sortedMatches;
     for (auto it = m_matches.cbegin(); it != m_matches.cend(); ++it)
         sortedMatches << it.value();
-    qSort(sortedMatches.begin(), sortedMatches.end(), [&](const Match &m1, const Match &m2) {
-        if (m1.competition == m2.competition)
+    std::sort(sortedMatches.begin(), sortedMatches.end(), [&](const Match &m1, const Match &m2) {
+        if (m1.competition == m2.competition) {
             return m1.position < m2.position;
+        }
         const QDateTime t1 = m_competitions[m1.competition].dateTime;
         const QDateTime t2 = m_competitions[m2.competition].dateTime;
+        if (t1 == t2) {
+            return m1.competition < m2.competition;
+        }
         return t1 < t2;
     });
 

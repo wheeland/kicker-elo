@@ -43,21 +43,21 @@ RankingWidget::RankingWidget()
     m_table = addToLayout<WTable>(m_layout);
 
     m_table->insertRow(0)->setHeight("2em");
-    m_table->insertColumn(0)->setWidth("10%");
-    m_table->insertColumn(1)->setWidth("35%");
-    m_table->insertColumn(2)->setWidth("15%");
-    m_table->insertColumn(3)->setWidth("15%");
-    m_table->insertColumn(4)->setWidth("15%");
-    m_table->insertColumn(5)->setWidth("10%");
+    m_table->insertColumn(0)->setWidth("8%");
+    m_table->insertColumn(1)->setWidth("40%");
+    m_table->insertColumn(2)->setWidth("13%");
+    m_table->insertColumn(3)->setWidth("13%");
+    m_table->insertColumn(4)->setWidth("13%");
+    m_table->insertColumn(5)->setWidth("13%");
 
     m_table->toggleStyleClass("table-bordered", true);
 
     m_table->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Rank</b>"));
     m_table->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Name</b>"));
-    m_table->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Combined</b>"));
+    m_table->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Combo</b>"));
     m_table->elementAt(0, 3)->addWidget(make_unique<WText>("<b>Single</b>"));
     m_table->elementAt(0, 4)->addWidget(make_unique<WText>("<b>Double</b>"));
-    m_table->elementAt(0, 5)->addWidget(make_unique<WText>("<b># Games</b>"));
+    m_table->elementAt(0, 5)->addWidget(make_unique<WText>("<b>Games</b>"));
 
     //
     // Add search bar
@@ -83,10 +83,15 @@ RankingWidget::RankingWidget()
     buttons->setMargin(WLength::Auto, Side::Left | Side::Right);
     buttons->setMargin("2%", Side::Top);
 
-    m_prevButton = buttons->addWidget(make_unique<WPushButton>("Prev"));
+    m_prevButton = buttons->addWidget(make_unique<WPushButton>("<<"));
     m_prevButton->setFloatSide(Side::Left);
-    m_nextButton = buttons->addWidget(make_unique<WPushButton>("Next"));
+    m_prevButton->decorationStyle().font().setSize("150%");
+    m_prevButton->setEnabled(m_page > 0);
+
+    m_nextButton = buttons->addWidget(make_unique<WPushButton>(">>"));
     m_nextButton->setFloatSide(Side::Right);
+    m_nextButton->decorationStyle().font().setSize("150%");
+    m_nextButton->setEnabled(true);
 
     m_prevButton->clicked().connect(this, &RankingWidget::prev);
     m_nextButton->clicked().connect(this, &RankingWidget::next);
@@ -171,4 +176,7 @@ void RankingWidget::update()
         m_rows[i].eloDouble->setText(num2str((int) p->eloDouble));
         m_rows[i].matchCount->setText(num2str(p->matchCount));
     }
+
+    m_prevButton->setEnabled(m_page > 0);
+    m_nextButton->setEnabled(m_page * m_entriesPerPage < board.size());
 }

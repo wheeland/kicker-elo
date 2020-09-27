@@ -34,7 +34,7 @@ private:
     Wt::WPushButton *m_nextButton;
 
     int m_page = 0;
-    int m_entriesPerPage = 20;
+    int m_entriesPerPage = 50;
 
     struct Row {
         Wt::WText *rank;

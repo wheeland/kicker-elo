@@ -10,6 +10,8 @@
 
 #include "database.hpp"
 
+#include <QVector>
+
 class RankingWidget : public Wt::WContainerWidget
 {
 public:

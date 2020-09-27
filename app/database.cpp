@@ -4,6 +4,13 @@
 #include <QSqlError>
 #include <QThread>
 
+struct Profiler {
+    Profiler(const QString &c) : caption(c), t0(QDateTime::currentMSecsSinceEpoch()) {}
+    ~Profiler() { qWarning() << caption << QDateTime::currentMSecsSinceEpoch() - t0; }
+    QString caption;
+    qint64 t0;
+};
+
 static QString genConnName()
 {
     static QAtomicInt counter = 0;
@@ -123,8 +130,60 @@ QVector<const Player*> Database::getPlayersByRanking(EloDomain domain, int start
     return ret;
 }
 
+QVector<PlayerEloProgression> Database::getPlayerEloProgression(const Player *player)
+{
+    Profiler prof("progression");
+
+    QSqlDatabase *db = getOrCreateDb();
+    QVector<PlayerEloProgression> ret;
+
+    int es, ed, ec;
+    bool first = true;
+
+    const QString queryString(
+        "SELECT m.type, c.date, ec.rating, es.rating "
+        "FROM played_matches AS pm "
+        "INNER JOIN matches AS m "
+        "   ON pm.match_id = m.id "
+        "INNER JOIN competitions AS c "
+        "   ON m.competition_id = c.id "
+        "INNER JOIN elo_combined AS ec "
+        "   ON pm.id = ec.played_match_id "
+        "INNER JOIN elo_separate AS es "
+        "   ON pm.id = es.played_match_id "
+        "WHERE pm.player_id = %1"
+    );
+    QSqlQuery query(queryString.arg(player->id), *db);
+    while (query.next()) {
+        const MatchType matchType = (MatchType) query.value(0).toInt();
+        const QDateTime date = QDateTime::fromSecsSinceEpoch(query.value(1).toLongLong());
+        const int eloCombined = query.value(2).toInt();
+        const int eloSeparate = query.value(3).toInt();
+
+        // get start rating
+        if (first) {
+            es = ed = eloSeparate;
+            ec = eloCombined;
+            first = false;
+        }
+        else {
+            if (matchType == MatchType::Single)
+                es = eloSeparate;
+            else
+                ed = eloSeparate;
+            ec = eloCombined;
+        }
+
+        ret << PlayerEloProgression{date, es, ed, ec};
+    }
+
+    return ret;
+}
+
 QVector<PlayerMatch> Database::getPlayerMatches(const Player *player)
 {
+    Profiler prof("matches");
+
     QSqlDatabase *db = getOrCreateDb();
     QVector<PlayerMatch> ret;
 

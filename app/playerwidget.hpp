@@ -9,6 +9,8 @@
 
 #include "database.hpp"
 
+#include <QVector>
+
 class PlayerWidget : public Wt::WContainerWidget
 {
 public:
@@ -28,6 +30,7 @@ private:
 
     int m_playerId;
     const FoosDB::Player *m_player = nullptr;
+    QVector<FoosDB::PlayerEloProgression> m_playerProgression;
     QVector<FoosDB::PlayerMatch> m_playerMatches;
 
     struct OtherPlayerStats {

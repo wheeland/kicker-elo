@@ -6,6 +6,7 @@
 #include <QHash>
 #include <QDateTime>
 #include <QReadWriteLock>
+#include <QVector>
 
 class QThread;
 
@@ -45,6 +46,14 @@ struct Player
     int matchCount;
 };
 
+struct PlayerEloProgression
+{
+    QDateTime date;
+    int eloSingle;
+    int eloDouble;
+    int eloCombined;
+};
+
 struct PlayerMatch
 {
     QDateTime date;
@@ -81,6 +90,7 @@ public:
     QVector<const Player*> searchPlayer(const QString &pattern) const;
     QVector<const Player*> getPlayersByRanking(EloDomain domain, int start = 0, int count = -1) const;
 
+    QVector<PlayerEloProgression> getPlayerEloProgression(const Player *player);
     QVector<PlayerMatch> getPlayerMatches(const Player *player);
 
 private:

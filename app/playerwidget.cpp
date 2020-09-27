@@ -93,10 +93,13 @@ void PlayerWidget::setPlayerId(int id)
     m_player = m_db->getPlayer(id);
     m_page = 0;
 
-    if (m_player)
+    if (m_player) {
         m_playerMatches = m_db->getPlayerMatches(m_player);
-    else
+        m_playerProgression = m_db->getPlayerEloProgression(m_player);
+    } else {
         m_playerMatches.clear();
+        m_playerProgression.clear();
+    }
 
     //
     // Update Peak ELO statistics and player matchups

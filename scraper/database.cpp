@@ -286,10 +286,10 @@ void Database::recompute()
         QVariantList pmIds;
         QVariantList ratings;
         QVariantList changes;
-        void add(int pmid, qint16 rating, qint16 change) {
+        void add(int pmid, float rating, float change) {
             pmIds << pmid;
-            ratings << rating;
-            changes << change;
+            ratings << (qint16) qRound(rating);
+            changes << (qint16) qRound(change);
         }
     };
     RatingDomain eloSeparate;
@@ -304,17 +304,17 @@ void Database::recompute()
     };
 
     const auto rateSingle = [&](int pid, int pmid, QHash<int, EloRating> &players, RatingDomain &domain, float res, float k, const EloRating &other) {
-        const qint16 oldRating = players[pid].abs();
+        const float oldRating = players[pid].abs();
         players[pid].adjust(k, res, other);
-        const qint16 newRating = players[pid].abs();
-        domain.add(pmid, newRating, newRating - oldRating);
+        const float newRating = players[pid].abs();
+        domain.add(pmid, oldRating, newRating - oldRating);
     };
 
     const auto rateDouble = [&](int pid, int pmid, QHash<int, EloRating> &players, RatingDomain &domain, float res, float k, const EloRating &partner, const EloRating &o1, const EloRating &o2) {
-        const qint16 oldRating = players[pid].abs();
+        const float oldRating = players[pid].abs();
         players[pid].adjust(k, partner, res, o1, o2);
-        const qint16 newRating = players[pid].abs();
-        domain.add(pmid, newRating, newRating - oldRating);
+        const float newRating = players[pid].abs();
+        domain.add(pmid, oldRating, newRating - oldRating);
     };
 
     for (const Match &match : sortedMatches) {
@@ -372,9 +372,9 @@ void Database::recompute()
     QVariantList playerCombinedElos;
     for (auto it = m_players.cbegin(); it != m_players.cend(); ++it) {
         playerIds << it->id;
-        playerSingleElos << playersSingle[it->id].abs();
-        playerDoubleElos << playersDouble[it->id].abs();
-        playerCombinedElos << playersCombined[it->id].abs();
+        playerSingleElos << qRound(playersSingle[it->id].abs());
+        playerDoubleElos << qRound(playersDouble[it->id].abs());
+        playerCombinedElos << qRound(playersCombined[it->id].abs());
     }
 
     //

@@ -112,8 +112,6 @@ void PlayerWidget::setPlayerId(int id)
     //
     // Update Peak ELO statistics
     //
-    m_peakSingle = m_peakDouble = m_peakCombined = 0;
-
     if (m_player) {
         const auto eloText = [](const std::string &name, int curr, int peak) {
             return "<p><b>" + name + ": " + num2str(curr) + " (Peak: " + num2str(peak) + ")</b></p>";

@@ -120,9 +120,9 @@ void PlayerWidget::setPlayerId(int id)
             return "<p><b>" + name + ": " + num2str(curr) + " (Peak: " + num2str(peak) + ")</b></p>";
         };
         m_title->setText("<b>" + player2str(m_player) + "</b>");
-        m_eloCombind->setText(eloText("Combined", (int) m_player->eloCombined, m_peakCombined));
-        m_eloDouble->setText(eloText("Double", (int) m_player->eloDouble, m_peakDouble));
-        m_eloSingle->setText(eloText("Single", (int) m_player->eloSingle, m_peakSingle));
+        m_eloCombind->setText(eloText("Combined", m_player->eloCombined, m_peakCombined));
+        m_eloDouble->setText(eloText("Double", m_player->eloDouble, m_peakDouble));
+        m_eloSingle->setText(eloText("Single", m_player->eloSingle, m_peakSingle));
     } else {
         m_title->setText("Invalid Player");
         m_eloCombind->setText("");

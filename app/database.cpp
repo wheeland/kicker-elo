@@ -70,9 +70,9 @@ void Database::readData()
         const int id = playerQuery.value(0).toInt();
         const QString firstName = playerQuery.value(1).toString();
         const QString lastName = playerQuery.value(2).toString();
-        const float es = playerQuery.value(3).toFloat();
-        const float ed = playerQuery.value(4).toFloat();
-        const float ec = playerQuery.value(5).toFloat();
+        const int es = playerQuery.value(3).toInt();
+        const int ed = playerQuery.value(4).toInt();
+        const int ec = playerQuery.value(5).toInt();
         m_players[id] = Player{id, firstName, lastName, es, ed, ec, 0};
     }
 
@@ -323,7 +323,7 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, EloDomain 
         "INNER JOIN elo_combined AS ec ON pm.id = ec.played_match_id "
         + whereString + orderString + limitString;
 
-    QSqlQuery query(queryString.arg(player->id), *db);
+    QSqlQuery query(queryString, *db);
 
     while (query.next()) {
         const int matchId = query.value(0).toInt();

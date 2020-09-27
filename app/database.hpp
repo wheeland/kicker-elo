@@ -39,9 +39,9 @@ struct Player
     QString firstName;
     QString lastName;
 
-    float eloSingle;
-    float eloDouble;
-    float eloCombined;
+    int eloSingle;
+    int eloDouble;
+    int eloCombined;
 
     int matchCount;
 };

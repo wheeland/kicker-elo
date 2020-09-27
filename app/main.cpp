@@ -23,19 +23,17 @@ private:
     Wt::WStackedWidget *m_stack;
     RankingWidget *m_rankingWidget;
     PlayerWidget *m_playerWidget;
-    FoosDB::Database m_database;
 };
 
 EloApp::EloApp(const Wt::WEnvironment& env)
     : Wt::WApplication(env)
-    , m_database("db.sqlite")
 {
     setTitle("Hello world");
 
     m_stack = root()->addWidget(make_unique<Wt::WStackedWidget>());
     m_stack->setWidth("70vw");
-    m_rankingWidget = m_stack->addWidget(make_unique<RankingWidget>(&m_database));
-    m_playerWidget = m_stack->addWidget(make_unique<PlayerWidget>(&m_database, 1917));
+    m_rankingWidget = m_stack->addWidget(make_unique<RankingWidget>());
+    m_playerWidget = m_stack->addWidget(make_unique<PlayerWidget>(1917));
 
     internalPathChanged().connect(this, &EloApp::onInternalPathChanged);
 }
@@ -56,6 +54,8 @@ void EloApp::onInternalPathChanged(const std::string &path)
 
 int main(int argc, char **argv)
 {
+    FoosDB::Database::create("db.sqlite");
+
     return Wt::WRun(argc, argv, [](const Wt::WEnvironment& env) {
       return std::make_unique<EloApp>(env);
     });

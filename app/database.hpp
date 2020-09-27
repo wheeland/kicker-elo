@@ -44,14 +44,20 @@ struct Player
     int eloCombined;
 
     int matchCount;
-};
 
-struct PlayerEloProgression
-{
-    QDateTime date;
-    int eloSingle;
-    int eloDouble;
-    int eloCombined;
+    struct EloProgression
+    {
+        qint16 day = 0;
+        qint16 month = 0;
+        qint16 year = 0;
+        qint16 eloSingle = 0;
+        qint16 eloDouble = 0;
+        qint16 eloCombined = 0;
+        EloProgression() = default;
+        EloProgression(const EloProgression&) = default;
+        EloProgression(const QDateTime &date, int s, int d, int c);
+    };
+    QVector<EloProgression> progression;
 };
 
 struct PlayerVsPlayerStats
@@ -92,8 +98,10 @@ struct PlayerMatch
 class Database
 {
 public:
-    Database(const std::string &dbPath);
-    ~Database();
+    static void create(const std::string &dbPath);
+    static void destroy();
+
+    static Database *instance();
 
     const Player *getPlayer(int id) const;
     int getPlayerCount() const { return m_players.size(); }
@@ -101,11 +109,13 @@ public:
     QVector<const Player*> getPlayersByRanking(EloDomain domain, int start = 0, int count = -1) const;
 
     int getPlayerMatchCount(const Player *player, EloDomain domain);
-    QVector<PlayerEloProgression> getPlayerEloProgression(const Player *player);
     QVector<PlayerMatch> getPlayerMatches(const Player *player, EloDomain domain, int start = 0, int count = -1);
     QVector<PlayerVsPlayerStats> getPlayerVsPlayerStats(const Player *player);
 
 private:
+    Database(const std::string &dbPath);
+    ~Database();
+
     void readData();
     QSqlDatabase *getOrCreateDb();
 

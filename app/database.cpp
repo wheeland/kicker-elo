@@ -19,6 +19,37 @@ static QString genConnName()
 
 namespace FoosDB {
 
+Player::EloProgression::EloProgression(const QDateTime &date, int s, int d, int c)
+{
+    const QDate dt = date.date();
+    day = dt.day();
+    month = dt.month();
+    year = dt.year();
+    eloSingle = s;
+    eloDouble = d;
+    eloCombined = c;
+}
+
+static Database *s_instance = nullptr;
+
+void Database::create(const std::string &dbPath)
+{
+    if (!s_instance) {
+        s_instance = new Database(dbPath);
+    }
+}
+
+void Database::destroy()
+{
+    delete s_instance;
+    s_instance = nullptr;
+}
+
+Database *Database::instance()
+{
+    return s_instance;
+}
+
 Database::Database(const std::string &dbPath)
 {
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", genConnName());
@@ -61,6 +92,9 @@ void Database::readData()
 {
     QSqlDatabase *db = getOrCreateDb();
 
+    //
+    // Read all player data
+    //
     QSqlQuery playerQuery(
         "SELECT p.id, p.firstName, p.lastName, e.single, e.double, e.combined "
         "FROM players AS p "
@@ -74,6 +108,47 @@ void Database::readData()
         const int ed = playerQuery.value(4).toInt();
         const int ec = playerQuery.value(5).toInt();
         m_players[id] = Player{id, firstName, lastName, es, ed, ec, 0};
+    }
+
+    //
+    // Read all ratings for all players for all games ever played
+    //
+    const QString ratingsQueryString(
+        "SELECT pm.player_id, m.type, c.date, ec.rating, es.rating "
+        "FROM played_matches AS pm "
+        "INNER JOIN matches AS m "
+        "   ON pm.match_id = m.id "
+        "INNER JOIN competitions AS c "
+        "   ON m.competition_id = c.id "
+        "INNER JOIN elo_combined AS ec "
+        "   ON pm.id = ec.played_match_id "
+        "INNER JOIN elo_separate AS es "
+        "   ON pm.id = es.played_match_id"
+    );
+    QSqlQuery ratingsQuery(ratingsQueryString, *db);
+
+    while (ratingsQuery.next()) {
+        const int playerId = ratingsQuery.value(0).toInt();
+        const MatchType matchType = (MatchType) ratingsQuery.value(1).toInt();
+        const QDateTime date = QDateTime::fromSecsSinceEpoch(ratingsQuery.value(2).toLongLong());
+        const int eloCombined = ratingsQuery.value(3).toInt();
+        const int eloSeparate = ratingsQuery.value(4).toInt();
+
+        auto it = m_players.find(playerId);
+        if (it != m_players.end()) {
+            if (it->progression.isEmpty()) {
+                it->progression << Player::EloProgression(date, eloSeparate, eloSeparate, eloCombined);
+            }
+            else {
+                int s = it->progression.last().eloSingle;
+                int d = it->progression.last().eloDouble;
+                if (matchType == MatchType::Single)
+                    s = eloSeparate;
+                else
+                    d = eloSeparate;
+                it->progression << Player::EloProgression(date, s, d, eloCombined);
+            }
+        }
     }
 
     QSqlQuery matchCountQuery(
@@ -155,56 +230,6 @@ int Database::getPlayerMatchCount(const Player *player, EloDomain domain)
     return (domain == EloDomain::Single) ? counts[0] :
            (domain == EloDomain::Double) ? counts[1] :
            (domain == EloDomain::Combined) ? counts[0] + counts[1] : 0;
-}
-
-QVector<PlayerEloProgression> Database::getPlayerEloProgression(const Player *player)
-{
-    Profiler prof("progression");
-
-    QSqlDatabase *db = getOrCreateDb();
-    QVector<PlayerEloProgression> ret;
-
-    int es, ed, ec;
-    bool first = true;
-
-    const QString queryString(
-        "SELECT m.type, c.date, ec.rating, es.rating "
-        "FROM played_matches AS pm "
-        "INNER JOIN matches AS m "
-        "   ON pm.match_id = m.id "
-        "INNER JOIN competitions AS c "
-        "   ON m.competition_id = c.id "
-        "INNER JOIN elo_combined AS ec "
-        "   ON pm.id = ec.played_match_id "
-        "INNER JOIN elo_separate AS es "
-        "   ON pm.id = es.played_match_id "
-        "WHERE pm.player_id = %1"
-    );
-    QSqlQuery query(queryString.arg(player->id), *db);
-    while (query.next()) {
-        const MatchType matchType = (MatchType) query.value(0).toInt();
-        const QDateTime date = QDateTime::fromSecsSinceEpoch(query.value(1).toLongLong());
-        const int eloCombined = query.value(2).toInt();
-        const int eloSeparate = query.value(3).toInt();
-
-        // get start rating
-        if (first) {
-            es = ed = eloSeparate;
-            ec = eloCombined;
-            first = false;
-        }
-        else {
-            if (matchType == MatchType::Single)
-                es = eloSeparate;
-            else
-                ed = eloSeparate;
-            ec = eloCombined;
-        }
-
-        ret << PlayerEloProgression{date, es, ed, ec};
-    }
-
-    return ret;
 }
 
 QVector<PlayerVsPlayerStats> Database::getPlayerVsPlayerStats(const Player *player)

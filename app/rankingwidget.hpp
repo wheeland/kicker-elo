@@ -15,7 +15,7 @@
 class RankingWidget : public Wt::WContainerWidget
 {
 public:
-    RankingWidget(FoosDB::Database *db);
+    RankingWidget();
     ~RankingWidget();
 
 private:

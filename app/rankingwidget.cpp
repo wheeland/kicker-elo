@@ -22,8 +22,8 @@ static inline T *addToLayout(WLayout *layout, Args&&... args)
     return ret;
 }
 
-RankingWidget::RankingWidget(FoosDB::Database *db)
-    : m_db(db)
+RankingWidget::RankingWidget()
+    : m_db(FoosDB::Database::instance())
 {
     setContentAlignment(AlignmentFlag::Center);
 

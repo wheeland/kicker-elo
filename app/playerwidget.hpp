@@ -14,7 +14,7 @@
 class PlayerWidget : public Wt::WContainerWidget
 {
 public:
-    PlayerWidget(FoosDB::Database *db, int playerId);
+    PlayerWidget(int playerId);
     ~PlayerWidget();
 
     void setPlayerId(int id);
@@ -31,7 +31,6 @@ private:
     int m_playerId = 0;
     const FoosDB::Player *m_player = nullptr;
     QVector<FoosDB::PlayerVsPlayerStats> m_pvpStats;
-    QVector<FoosDB::PlayerEloProgression> m_progression;
 
     int m_singleCount = 0;
     int m_doubleCount = 0;

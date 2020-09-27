@@ -27,8 +27,8 @@ static std::string player2str(const FoosDB::Player *player)
     return player ? (player->firstName + " " + player->lastName).toStdString() : "";
 }
 
-PlayerWidget::PlayerWidget(FoosDB::Database *db, int playerId)
-    : m_db(db)
+PlayerWidget::PlayerWidget(int playerId)
+    : m_db(FoosDB::Database::instance())
 {
     setContentAlignment(AlignmentFlag::Center);
 
@@ -95,12 +95,16 @@ void PlayerWidget::setPlayerId(int id)
 
     if (m_player) {
         m_pvpStats = m_db->getPlayerVsPlayerStats(m_player);
-        m_progression = m_db->getPlayerEloProgression(m_player);
         m_singleCount = m_db->getPlayerMatchCount(m_player, FoosDB::EloDomain::Single);
         m_doubleCount = m_db->getPlayerMatchCount(m_player, FoosDB::EloDomain::Double);
+
+        for (const FoosDB::Player::EloProgression &progression : m_player->progression) {
+            m_peakSingle = qMax(m_peakSingle, (int) progression.eloSingle);
+            m_peakDouble = qMax(m_peakDouble, (int) progression.eloDouble);
+            m_peakCombined = qMax(m_peakCombined, (int) progression.eloCombined);
+        }
     } else {
         m_pvpStats.clear();
-        m_progression.clear();
         m_singleCount = 0;
         m_doubleCount = 0;
     }
@@ -109,11 +113,6 @@ void PlayerWidget::setPlayerId(int id)
     // Update Peak ELO statistics
     //
     m_peakSingle = m_peakDouble = m_peakCombined = 0;
-    for (const FoosDB::PlayerEloProgression &progression : m_progression) {
-        m_peakSingle = qMax(m_peakSingle, progression.eloSingle);
-        m_peakDouble = qMax(m_peakDouble, progression.eloDouble);
-        m_peakCombined = qMax(m_peakCombined, progression.eloCombined);
-    }
 
     if (m_player) {
         const auto eloText = [](const std::string &name, int curr, int peak) {
@@ -149,15 +148,17 @@ void PlayerWidget::next()
 
 void PlayerWidget::updateChart()
 {
-    m_eloModel = std::make_shared<Wt::WStandardItemModel>(m_progression.size(), 4);
+    const int sz = m_player ? m_player->progression.size() : 0;
+
+    m_eloModel = std::make_shared<Wt::WStandardItemModel>(sz, 4);
     m_eloModel->setHeaderData(0, WString("Date"));
     m_eloModel->setHeaderData(1, WString("Combined"));
     m_eloModel->setHeaderData(2, WString("Double"));
     m_eloModel->setHeaderData(3, WString("Single"));
 
-    for (int i = 0; i < m_progression.size(); ++i) {
-        const FoosDB::PlayerEloProgression pep = m_progression[i];
-        const WDate date(pep.date.date().year(), pep.date.date().month(), pep.date.date().day());
+    for (int i = 0; i < sz; ++i) {
+        const FoosDB::Player::EloProgression pep = m_player->progression[i];
+        const WDate date(pep.year, pep.month, pep.day);
         m_eloModel->setData(i, 0, date);
         m_eloModel->setData(i, 1, (float) pep.eloCombined);
         m_eloModel->setData(i, 2, (float) pep.eloDouble);

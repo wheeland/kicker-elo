@@ -4,7 +4,9 @@
 #include <Wt/WText.h>
 #include <Wt/WAnchor.h>
 #include <Wt/WPushButton.h>
+#include <Wt/WLineEdit.h>
 #include <Wt/WContainerWidget.h>
+#include <Wt/WVBoxLayout.h>
 
 #include "database.hpp"
 
@@ -18,10 +20,13 @@ private:
     void prev();
     void next();
     void update();
+    void updateSearch();
 
     FoosDB::Database *m_db;
     FoosDB::EloDomain m_sortDomain = FoosDB::EloDomain::Combined;
-    Wt::WText *m_title;
+
+    Wt::WVBoxLayout *m_layout;
+    Wt::WLineEdit *m_searchBar;
     Wt::WTable *m_table;
     Wt::WPushButton *m_prevButton;
     Wt::WPushButton *m_nextButton;

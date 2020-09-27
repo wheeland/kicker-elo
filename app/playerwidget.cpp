@@ -91,6 +91,7 @@ void PlayerWidget::setPlayerId(int id)
 {
     m_playerId = id;
     m_player = m_db->getPlayer(id);
+    m_page = 0;
 
     if (m_player)
         m_playerMatches = m_db->getPlayerMatches(m_player);

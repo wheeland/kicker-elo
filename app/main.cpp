@@ -33,6 +33,7 @@ EloApp::EloApp(const Wt::WEnvironment& env)
     setTitle("Hello world");
 
     m_stack = root()->addWidget(make_unique<Wt::WStackedWidget>());
+    m_stack->setWidth("70vw");
     m_rankingWidget = m_stack->addWidget(make_unique<RankingWidget>(&m_database));
     m_playerWidget = m_stack->addWidget(make_unique<PlayerWidget>(&m_database, 1917));
 

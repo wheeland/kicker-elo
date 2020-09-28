@@ -20,11 +20,15 @@ public:
     void setPlayerId(int id);
 
 private:
-    void prev();
-    void next();
     void updateChart();
+    void selectChart();
     void updateOpponents();
     void updateMatchTable();
+
+    void prev();
+    void next();
+
+    void setDomain(FoosDB::EloDomain domain);
 
     FoosDB::Database *m_db;
 
@@ -70,19 +74,23 @@ private:
         Wt::WText *competition;
         // column 2
         Wt::WAnchor *player1;
+        Wt::WText *player1Elo;
         Wt::WAnchor *player11;
+        Wt::WText *player11Elo;
         // column 3
         Wt::WText *score;
+        Wt::WText *eloChange;
         // column 4
         Wt::WAnchor *player2;
+        Wt::WText *player2Elo;
         Wt::WAnchor *player22;
-        // column 5?
-        Wt::WText *eloCombined;
-        Wt::WText *eloSingle;
-        Wt::WText *eloDouble;
+        Wt::WText *player22Elo;
     };
     QVector<Row> m_rows;
 
     std::shared_ptr<Wt::WStandardItemModel> m_eloModel;
-    Wt::Chart::WCartesianChart *m_eloChart;
+    Wt::WStackedWidget *m_chartStack;
+    Wt::Chart::WCartesianChart *m_eloChartCombined;
+    Wt::Chart::WCartesianChart *m_eloChartSingle;
+    Wt::Chart::WCartesianChart *m_eloChartDouble;
 };

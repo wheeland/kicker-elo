@@ -45,7 +45,7 @@ EloApp::EloApp(const WEnvironment& env)
     rootBg->setPositionScheme(PositionScheme::Fixed);
 
     WContainerWidget *contentBg = root()->addWidget(make_unique<WContainerWidget>());
-    contentBg->setMaximumSize("640", WLength::Auto);
+    contentBg->setMaximumSize("800", WLength::Auto);
     contentBg->setHeight("100vh");
     contentBg->setMargin(WLength::Auto);
     contentBg->setPositionScheme(PositionScheme::Relative);

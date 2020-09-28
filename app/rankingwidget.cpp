@@ -41,15 +41,16 @@ RankingWidget::RankingWidget()
     // Add search bar
     //
     WContainerWidget *search = addToLayout<WContainerWidget>(m_layout);
+    search->setLayout(make_unique<WHBoxLayout>());
     search->setWidth("80%");
     search->setMargin(WLength::Auto, Side::Left | Side::Right);
 
-    WText *searchText = search->addWidget(make_unique<WText>("Search: "));
+    WText *searchText = addToLayout<WText>(search->layout(), "Search: ");
     searchText->setMargin("5%", Side::Left | Side::Right);
     searchText->decorationStyle().font().setSize("150%");
 
-    m_searchBar = search->addWidget(make_unique<WLineEdit>(""));
-    m_searchBar->setWidth("70%");
+    m_searchBar = addToLayout<WLineEdit>(search->layout());
+    m_searchBar->setWidth("60%");
     m_searchBar->decorationStyle().font().setSize("130%");
     m_searchBar->textInput().connect(this, &RankingWidget::updateSearch);
 
@@ -57,6 +58,7 @@ RankingWidget::RankingWidget()
     // Add rankings table
     //
     m_table = addToLayout<WTable>(m_layout);
+    m_table->setWidth("100%");
     m_table->setMargin("2%", Side::Top);
 
     m_table->insertRow(0)->setHeight("2em");
@@ -179,6 +181,13 @@ void RankingWidget::update()
         row.eloDouble  = m_table->elementAt(n, 4)->addWidget(createText());
         row.matchCount = m_table->elementAt(n, 5)->addWidget(createText());
         m_rows << row;
+
+        const WColor bg1(235, 235, 235), bg2(225, 225, 225);
+        for (int i = 0; i < 6; ++i) {
+            m_table->elementAt(n, i)->setContentAlignment(AlignmentFlag::Middle);
+            const bool odd = (n % 2 == 1);
+            m_table->elementAt(n, i)->decorationStyle().setBackgroundColor(odd ? bg2 : bg1);
+        }
     }
 
     while (m_table->rowCount() - 1 > count) {

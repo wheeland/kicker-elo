@@ -410,15 +410,11 @@ void PlayerWidget::updateMatchTable()
         row.player22 = p22->addWidget(make_unique<WAnchor>());
         row.player22Elo = p22->addWidget(make_unique<WText>());
 
-        m_matchesTable->elementAt(n, 1)->setContentAlignment(AlignmentFlag::Middle);
-        m_matchesTable->elementAt(n, 3)->setContentAlignment(AlignmentFlag::Middle);
-
-        const WColor bg(230, 230, 230);
-        if (n % 2) {
-            m_matchesTable->elementAt(n, 0)->decorationStyle().setBackgroundColor(bg);
-            m_matchesTable->elementAt(n, 1)->decorationStyle().setBackgroundColor(bg);
-            m_matchesTable->elementAt(n, 2)->decorationStyle().setBackgroundColor(bg);
-            m_matchesTable->elementAt(n, 3)->decorationStyle().setBackgroundColor(bg);
+        const WColor bg1(235, 235, 235), bg2(225, 225, 225);
+        for (int i = 0; i < 4; ++i) {
+            m_matchesTable->elementAt(n, i)->setContentAlignment(AlignmentFlag::Middle);
+            const bool odd = (n % 2 == 1);
+            m_matchesTable->elementAt(n, i)->decorationStyle().setBackgroundColor(odd ? bg2 : bg1);
         }
 
         m_rows << row;

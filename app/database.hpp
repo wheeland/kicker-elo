@@ -111,6 +111,7 @@ public:
     int getPlayerMatchCount(const Player *player, EloDomain domain);
     QVector<PlayerMatch> getPlayerMatches(const Player *player, EloDomain domain, int start = 0, int count = -1);
     QVector<PlayerVsPlayerStats> getPlayerVsPlayerStats(const Player *player);
+    QVector<Player::EloProgression> getPlayerProgression(const Player *player);
 
 private:
     Database(const std::string &dbPath);

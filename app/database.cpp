@@ -113,19 +113,19 @@ void Database::readData()
     //
     // Read all ratings for all players for all games ever played
     //
-    const QString ratingsQueryString(
-        "SELECT pm.player_id, m.type, c.date, ec.rating, es.rating "
-        "FROM played_matches AS pm "
-        "INNER JOIN matches AS m "
-        "   ON pm.match_id = m.id "
-        "INNER JOIN competitions AS c "
-        "   ON m.competition_id = c.id "
-        "INNER JOIN elo_combined AS ec "
-        "   ON pm.id = ec.played_match_id "
-        "INNER JOIN elo_separate AS es "
-        "   ON pm.id = es.played_match_id"
-    );
-    QSqlQuery ratingsQuery(ratingsQueryString, *db);
+//    const QString ratingsQueryString(
+//        "SELECT pm.player_id, m.type, c.date, ec.rating, es.rating "
+//        "FROM played_matches AS pm "
+//        "INNER JOIN matches AS m "
+//        "   ON pm.match_id = m.id "
+//        "INNER JOIN competitions AS c "
+//        "   ON m.competition_id = c.id "
+//        "INNER JOIN elo_combined AS ec "
+//        "   ON pm.id = ec.played_match_id "
+//        "INNER JOIN elo_separate AS es "
+//        "   ON pm.id = es.played_match_id"
+//    );
+//    QSqlQuery ratingsQuery(ratingsQueryString, *db);
 
 //    while (ratingsQuery.next()) {
 //        const int playerId = ratingsQuery.value(0).toInt();
@@ -275,6 +275,53 @@ QVector<PlayerVsPlayerStats> Database::getPlayerVsPlayerStats(const Player *play
             combinedDelta, doubleDelta, singleDelta,
             partnerCombinedDelta, partnerDoubleDelta
         };
+    }
+
+    return ret;
+}
+
+QVector<Player::EloProgression> Database::getPlayerProgression(const Player *player)
+{
+    Profiler prof("pvp");
+    QVector<Player::EloProgression> ret;
+    QSqlDatabase *db = getOrCreateDb();
+
+    if (player) {
+        const QString ratingsQueryString(
+            "SELECT m.type, c.date, ec.rating, es.rating "
+            "FROM played_matches AS pm "
+            "INNER JOIN matches AS m "
+            "   ON pm.match_id = m.id "
+            "INNER JOIN competitions AS c "
+            "   ON m.competition_id = c.id "
+            "INNER JOIN elo_combined AS ec "
+            "   ON pm.id = ec.played_match_id "
+            "INNER JOIN elo_separate AS es "
+            "   ON pm.id = es.played_match_id "
+            "WHERE pm.player_id = %1"
+        );
+        QSqlQuery ratingsQuery(ratingsQueryString.arg(player->id), *db);
+
+        while (ratingsQuery.next()) {
+            const MatchType matchType = (MatchType) ratingsQuery.value(0).toInt();
+            const QDateTime date = QDateTime::fromSecsSinceEpoch(ratingsQuery.value(1).toLongLong());
+            const int eloCombined = ratingsQuery.value(2).toInt();
+            const int eloSeparate = ratingsQuery.value(3).toInt();
+
+
+            if (ret.isEmpty()) {
+                ret << Player::EloProgression(date, eloSeparate, eloSeparate, eloCombined);
+            }
+            else {
+                int s = ret.last().eloSingle;
+                int d = ret.last().eloDouble;
+                if (matchType == MatchType::Single)
+                    s = eloSeparate;
+                else
+                    d = eloSeparate;
+                ret << Player::EloProgression(date, s, d, eloCombined);
+            }
+        }
     }
 
     return ret;

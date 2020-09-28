@@ -153,16 +153,16 @@ void PlayerWidget::next()
 
 void PlayerWidget::updateChart()
 {
-    const int sz = m_player ? m_player->progression.size() : 0;
+    const QVector<FoosDB::Player::EloProgression> progression = m_db->getPlayerProgression(m_player);
 
-    m_eloModel = std::make_shared<Wt::WStandardItemModel>(sz, 4);
+    m_eloModel = std::make_shared<Wt::WStandardItemModel>(progression.size(), 4);
     m_eloModel->setHeaderData(0, WString("Date"));
     m_eloModel->setHeaderData(1, WString("Combined"));
     m_eloModel->setHeaderData(2, WString("Double"));
     m_eloModel->setHeaderData(3, WString("Single"));
 
-    for (int i = 0; i < sz; ++i) {
-        const FoosDB::Player::EloProgression pep = m_player->progression[i];
+    for (int i = 0; i < progression.size(); ++i) {
+        const FoosDB::Player::EloProgression pep = progression[i];
         const WDate date(pep.year, pep.month, pep.day);
         m_eloModel->setData(i, 0, date);
         m_eloModel->setData(i, 1, (float) pep.eloCombined);

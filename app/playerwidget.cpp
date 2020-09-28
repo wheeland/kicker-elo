@@ -159,8 +159,20 @@ PlayerWidget::PlayerWidget(int playerId)
     //
     // setup buttons
     //
-    m_prevButton = addWidget(make_unique<WPushButton>("Prev"));
-    m_nextButton = addWidget(make_unique<WPushButton>("Next"));
+    WContainerWidget *buttons = addToLayout<WContainerWidget>(this);
+    buttons->setWidth("30%");
+    buttons->setMargin(WLength::Auto, Side::Left | Side::Right);
+    buttons->setMargin("2%", Side::Top);
+
+    m_prevButton = buttons->addWidget(make_unique<WPushButton>("<<"));
+    m_prevButton->setFloatSide(Side::Left);
+    m_prevButton->decorationStyle().font().setSize("150%");
+    m_prevButton->setEnabled(m_page > 0);
+
+    m_nextButton = buttons->addWidget(make_unique<WPushButton>(">>"));
+    m_nextButton->setFloatSide(Side::Right);
+    m_nextButton->decorationStyle().font().setSize("150%");
+    m_nextButton->setEnabled(true);
 
     m_prevButton->clicked().connect(this, &PlayerWidget::prev);
     m_nextButton->clicked().connect(this, &PlayerWidget::next);
@@ -444,4 +456,7 @@ void PlayerWidget::updateMatchTable()
         setPlayerDetails(m_rows[i].player2, m_rows[i].player2Elo, m.opponent1);
         setPlayerDetails(m_rows[i].player22, m_rows[i].player22Elo, m.opponent2);
     }
+
+    m_prevButton->setEnabled(m_page > 0);
+    m_nextButton->setEnabled((m_page + 1) * m_entriesPerPage < totalMatchCount);
 }

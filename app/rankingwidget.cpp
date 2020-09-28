@@ -71,15 +71,16 @@ RankingWidget::RankingWidget()
 
     m_table->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Rank</b>"));
     m_table->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Name</b>"));
-    WPushButton *comboBtn = m_table->elementAt(0, 2)->addWidget(make_unique<WPushButton>("Combo"));
-    WPushButton *singleBtn = m_table->elementAt(0, 3)->addWidget(make_unique<WPushButton>("Single"));
-    WPushButton *doubleBtn = m_table->elementAt(0, 4)->addWidget(make_unique<WPushButton>("Double"));
-    WPushButton *gamesBtn = m_table->elementAt(0, 5)->addWidget(make_unique<WPushButton>("Games"));
 
-    comboBtn->clicked().connect([=]() { m_sortPolicy = Combined; update(); });
-    singleBtn->clicked().connect([=]() { m_sortPolicy = Single; update(); });
-    doubleBtn->clicked().connect([=]() { m_sortPolicy = Double; update(); });
-    gamesBtn->clicked().connect([=]() { m_sortPolicy = Games; update(); });
+    m_comboButton = m_table->elementAt(0, 2)->addWidget(make_unique<WPushButton>("Combo"));
+    m_singleButton = m_table->elementAt(0, 3)->addWidget(make_unique<WPushButton>("Single"));
+    m_doubleButton = m_table->elementAt(0, 4)->addWidget(make_unique<WPushButton>("Double"));
+    m_gamesButton = m_table->elementAt(0, 5)->addWidget(make_unique<WPushButton>("Games"));
+
+    m_comboButton->clicked().connect([=]() { m_sortPolicy = Combined; update(); });
+    m_singleButton->clicked().connect([=]() { m_sortPolicy = Single; update(); });
+    m_doubleButton->clicked().connect([=]() { m_sortPolicy = Double; update(); });
+    m_gamesButton->clicked().connect([=]() { m_sortPolicy = Games; update(); });
 
     //
     // Add next/prev buttons
@@ -197,6 +198,11 @@ void RankingWidget::update()
         m_rows[i].eloDouble->setText(num2str((int) p->eloDouble));
         m_rows[i].matchCount->setText(num2str(p->matchCount));
     }
+
+    m_comboButton->decorationStyle().font().setWeight((m_sortPolicy == Combined) ? FontWeight::Bold : FontWeight::Normal);
+    m_doubleButton->decorationStyle().font().setWeight((m_sortPolicy == Double) ? FontWeight::Bold : FontWeight::Normal);
+    m_singleButton->decorationStyle().font().setWeight((m_sortPolicy == Single) ? FontWeight::Bold : FontWeight::Normal);
+    m_gamesButton->decorationStyle().font().setWeight((m_sortPolicy == Games) ? FontWeight::Bold : FontWeight::Normal);
 
     m_prevButton->setEnabled(m_page > 0);
     m_nextButton->setEnabled(m_page * m_entriesPerPage < board.size());

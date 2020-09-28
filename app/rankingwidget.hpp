@@ -38,6 +38,10 @@ private:
     Wt::WVBoxLayout *m_layout;
     Wt::WLineEdit *m_searchBar;
     Wt::WTable *m_table;
+    Wt::WPushButton *m_comboButton;
+    Wt::WPushButton *m_doubleButton;
+    Wt::WPushButton *m_singleButton;
+    Wt::WPushButton *m_gamesButton;
     Wt::WPushButton *m_prevButton;
     Wt::WPushButton *m_nextButton;
 

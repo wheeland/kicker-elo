@@ -6,10 +6,19 @@
 #include <Wt/WTime.h>
 #include <Wt/WDateTime.h>
 #include <Wt/WStandardItem.h>
+#include <Wt/WCssDecorationStyle.h>
 
 using namespace Wt;
 using namespace Util;
 using std::make_unique;
+
+template<typename T, typename... Args>
+static inline T *addToLayout(WLayout *layout, Args&&... args)
+{
+    T *ret = new T(std::forward<Args>(args)...);
+    layout->addWidget(std::unique_ptr<T>(ret));
+    return ret;
+}
 
 static std::string date2str(const QDateTime &dt)
 {
@@ -39,32 +48,92 @@ PlayerWidget::PlayerWidget(int playerId)
 {
     setContentAlignment(AlignmentFlag::Center);
 
-    m_title = addWidget(make_unique<WText>(""));
-    m_eloCombind = addWidget(make_unique<WText>(""));
-    m_eloDouble = addWidget(make_unique<WText>(""));
-    m_eloSingle = addWidget(make_unique<WText>(""));
+    m_layout = new WVBoxLayout();
+    setLayout(std::unique_ptr<WVBoxLayout>(m_layout));
+
+    m_title = addToLayout<WText>(m_layout);
+    m_title->setTextAlignment(AlignmentFlag::Center);
+
+    //
+    // Setup three ELO headers
+    //
+    WContainerWidget *eloNumbers = addToLayout<WContainerWidget>(m_layout);
+    eloNumbers->setPositionScheme(PositionScheme::Relative);
+    eloNumbers->setWidth("100%");
+    eloNumbers->setHeight("8em");
+    eloNumbers->setMargin(WLength::Auto, Side::Left | Side::Right);
+    eloNumbers->setContentAlignment(AlignmentFlag::Center);
+
+    const auto addText = [&](WContainerWidget *container, const std::string &str, FontSize sz) {
+        WText *txt = addToLayout<WText>(container->layout(), str);
+        txt->decorationStyle().font().setSize(sz);
+        return txt;
+    };
+
+    const auto addEloButton = [&](WContainerWidget *container) {
+        WPushButton *btn = addToLayout<WPushButton>(container->layout(), "Select");
+        btn->setWidth("50%");
+        btn->setMargin("5%", Side::Top);
+        btn->setMargin(WLength::Auto, Side::Left | Side::Right);
+        return btn;
+    };
+
+    WContainerWidget *groupCombined = eloNumbers->addWidget(make_unique<WContainerWidget>());
+    groupCombined->setPositionScheme(PositionScheme::Absolute);
+    groupCombined->setWidth("25%");
+    groupCombined->setOffsets("10%", Side::Left);
+    groupCombined->setLayout(make_unique<WVBoxLayout>());
+    addText(groupCombined, "Combined", FontSize::Large);
+    m_eloCombined = addText(groupCombined, "", FontSize::XLarge);
+    m_eloCombinedPeak = addText(groupCombined, "", FontSize::Large);
+    m_eloCombinedButton = addEloButton(groupCombined);
+
+    WContainerWidget *groupDouble = eloNumbers->addWidget(make_unique<WContainerWidget>());
+    groupDouble->setPositionScheme(PositionScheme::Absolute);
+    groupDouble->setWidth("25%");
+    groupDouble->setOffsets("37.5%", Side::Left);
+    groupDouble->setLayout(make_unique<WVBoxLayout>());
+    addText(groupDouble, "Double", FontSize::Large);
+    m_eloDouble = addText(groupDouble, "", FontSize::XLarge);
+    m_eloDoublePeak = addText(groupDouble, "", FontSize::Large);
+    m_eloDoubleButton = addEloButton(groupDouble);
+
+    WContainerWidget *groupSingle = eloNumbers->addWidget(make_unique<WContainerWidget>());
+    groupSingle->setPositionScheme(PositionScheme::Absolute);
+    groupSingle->setWidth("25%");
+    groupSingle->setOffsets("65%", Side::Left);
+    groupSingle->setLayout(make_unique<WVBoxLayout>());
+    addText(groupSingle, "Single", FontSize::Large);
+    m_eloSingle = addText(groupSingle, "", FontSize::XLarge);
+    m_eloSinglePeak = addText(groupSingle, "", FontSize::Large);
+    m_eloSingleButton = addEloButton(groupSingle);
+
+    m_eloCombinedButton->clicked().connect([=]() { m_displayedDomain = FoosDB::EloDomain::Combined; updateMatchTable(); });
+    m_eloDoubleButton->clicked().connect([=]() { m_displayedDomain = FoosDB::EloDomain::Double; updateMatchTable(); });
+    m_eloSingleButton->clicked().connect([=]() { m_displayedDomain = FoosDB::EloDomain::Single; updateMatchTable(); });
 
     //
     // setup ELO plot
     //
-    m_eloChart = addWidget(make_unique<Wt::Chart::WCartesianChart>());
+    m_eloChart = addToLayout<Wt::Chart::WCartesianChart>(m_layout);
     m_eloChart->setBackground(WColor(220, 220, 220));
-    m_eloChart->setLegendEnabled(true);
     m_eloChart->setType(Chart::ChartType::Scatter);
-    m_eloChart->setPlotAreaPadding(40, Side::Left | Side::Top | Side::Bottom);
-    m_eloChart->setPlotAreaPadding(120, Side::Right);
-    m_eloChart->resize(800, 400);
+    m_eloChart->resize(600, 400);
     m_eloChart->setMargin(WLength::Auto, Side::Left | Side::Right);
+
+    //
+    // Add Combo/Double/Single buttons
+    //
 
     //
     // setup opponents table
     //
-    m_opponents = addWidget(make_unique<WTable>());
+    m_opponents = addToLayout<WTable>(m_layout);
 
     //
     // setup matches table
     //
-    m_matchesTable = addWidget(make_unique<WTable>());
+    m_matchesTable = addToLayout<WTable>(m_layout);
     m_matchesTable->insertRow(0)->setHeight("2em");
     m_matchesTable->insertColumn(0)->setWidth("15vw");
     m_matchesTable->insertColumn(1)->setWidth("15vw");
@@ -100,12 +169,18 @@ void PlayerWidget::setPlayerId(int id)
     m_player = m_db->getPlayer(id);
     m_page = 0;
 
+    m_peakSingle = m_peakDouble = m_peakCombined = 0;
+    const int es = m_player ? m_player->eloSingle : 0;
+    const int ed = m_player ? m_player->eloDouble : 0;
+    const int ec = m_player ? m_player->eloCombined : 0;
+
     if (m_player) {
         m_pvpStats = m_db->getPlayerVsPlayerStats(m_player);
         m_singleCount = m_db->getPlayerMatchCount(m_player, FoosDB::EloDomain::Single);
         m_doubleCount = m_db->getPlayerMatchCount(m_player, FoosDB::EloDomain::Double);
+        m_progression = m_db->getPlayerProgression(m_player);
 
-        for (const FoosDB::Player::EloProgression &progression : m_player->progression) {
+        for (const FoosDB::Player::EloProgression &progression : m_progression) {
             m_peakSingle = qMax(m_peakSingle, (int) progression.eloSingle);
             m_peakDouble = qMax(m_peakDouble, (int) progression.eloDouble);
             m_peakCombined = qMax(m_peakCombined, (int) progression.eloCombined);
@@ -117,22 +192,15 @@ void PlayerWidget::setPlayerId(int id)
     }
 
     //
-    // Update Peak ELO statistics
+    // Update ELO/title texts
     //
-    if (m_player) {
-        const auto eloText = [](const std::string &name, int curr, int peak) {
-            return "<p><b>" + name + ": " + num2str(curr) + " (Peak: " + num2str(peak) + ")</b></p>";
-        };
-        m_title->setText("<b>" + player2str(m_player) + "</b>");
-        m_eloCombind->setText(eloText("Combined", m_player->eloCombined, m_peakCombined));
-        m_eloDouble->setText(eloText("Double", m_player->eloDouble, m_peakDouble));
-        m_eloSingle->setText(eloText("Single", m_player->eloSingle, m_peakSingle));
-    } else {
-        m_title->setText("Invalid Player");
-        m_eloCombind->setText("");
-        m_eloDouble->setText("");
-        m_eloSingle->setText("");
-    }
+    m_title->setText("<h1>" + player2str(m_player) + "</h1>");
+    m_eloCombined->setText("<b>" + num2str(ec) + "</b>");
+    m_eloDouble->setText("<b>" + num2str(ed) + "</b>");
+    m_eloSingle->setText("<b>" + num2str(es) + "</b>");
+    m_eloCombinedPeak->setText("(Peak: <b>" + num2str(m_peakCombined) + "</b>)");
+    m_eloDoublePeak->setText("(Peak: <b>" + num2str(m_peakDouble) + "</b>)");
+    m_eloSinglePeak->setText("(Peak: <b>" + num2str(m_peakSingle) + "</b>)");
 
     updateChart();
     updateOpponents();
@@ -152,17 +220,14 @@ void PlayerWidget::next()
 }
 
 void PlayerWidget::updateChart()
-{
-    const QVector<FoosDB::Player::EloProgression> progression = m_db->getPlayerProgression(m_player);
-
-    m_eloModel = std::make_shared<Wt::WStandardItemModel>(progression.size(), 4);
+{   m_eloModel = std::make_shared<Wt::WStandardItemModel>(m_progression.size(), 4);
     m_eloModel->setHeaderData(0, WString("Date"));
     m_eloModel->setHeaderData(1, WString("Combined"));
     m_eloModel->setHeaderData(2, WString("Double"));
     m_eloModel->setHeaderData(3, WString("Single"));
 
-    for (int i = 0; i < progression.size(); ++i) {
-        const FoosDB::Player::EloProgression pep = progression[i];
+    for (int i = 0; i < m_progression.size(); ++i) {
+        const FoosDB::Player::EloProgression pep = m_progression[i];
         const WDate date(pep.year, pep.month, pep.day);
         m_eloModel->setData(i, 0, date);
         m_eloModel->setData(i, 1, (float) pep.eloCombined);
@@ -231,6 +296,10 @@ void PlayerWidget::updateOpponents()
 
 void PlayerWidget::updateMatchTable()
 {
+    m_eloCombinedButton->setEnabled(m_displayedDomain != FoosDB::EloDomain::Combined);
+    m_eloDoubleButton->setEnabled(m_displayedDomain != FoosDB::EloDomain::Double);
+    m_eloSingleButton->setEnabled(m_displayedDomain != FoosDB::EloDomain::Single);
+
     if (!m_player) {
         while (m_matchesTable->rowCount() > 1)
             m_matchesTable->removeRow(m_matchesTable->rowCount() - 1);

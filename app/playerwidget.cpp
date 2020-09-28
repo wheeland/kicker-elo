@@ -29,7 +29,7 @@ static std::string date2str(const QDateTime &dt)
 
 static std::string diff2str(int diff)
 {
-    return (diff > 0) ? ("+" + num2str(diff)) : num2str(diff);
+    return (diff >= 0) ? ("+" + num2str(diff)) : num2str(diff);
 }
 
 static std::string player2str(const FoosDB::Player *player)
@@ -145,10 +145,10 @@ PlayerWidget::PlayerWidget(int playerId)
     //
     m_matchesTable = addToLayout<WTable>(this);
 //    m_matchesTable->insertRow(0)->setHeight("2em");
-    m_matchesTable->insertColumn(0)->setWidth("20%");
-    m_matchesTable->insertColumn(1)->setWidth("30%");
-    m_matchesTable->insertColumn(2)->setWidth("8%");
-    m_matchesTable->insertColumn(3)->setWidth("30%");
+    m_matchesTable->insertColumn(0)->setWidth("22%");
+    m_matchesTable->insertColumn(1)->setWidth("28%");
+    m_matchesTable->insertColumn(2)->setWidth("10%");
+    m_matchesTable->insertColumn(3)->setWidth("28%");
 
 //    m_matchesTable->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Competition</b>"));
 //    m_matchesTable->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Team 1</b>"));
@@ -361,7 +361,7 @@ void PlayerWidget::updateMatchTable()
         const int n = m_matchesTable->rowCount();
 
         Row row;
-        m_matchesTable->insertRow(n)->setHeight("1.8em");
+        m_matchesTable->insertRow(n)->setHeight("1.4em");
 
         const auto addVContainer = [&](int c) {
             WContainerWidget *container = m_matchesTable->elementAt(n, c)->addWidget(make_unique<WContainerWidget>());
@@ -387,6 +387,7 @@ void PlayerWidget::updateMatchTable()
 
         WContainerWidget *result = addVContainer(2);
         row.score = addToLayout<WText>(result);
+        row.score->decorationStyle().font().setWeight(FontWeight::Bold);
         row.eloChange = addToLayout<WText>(result);
 
         WContainerWidget *player2Widget = addVContainer(3);
@@ -396,6 +397,17 @@ void PlayerWidget::updateMatchTable()
         WContainerWidget *p22 = addToLayout<WContainerWidget>(player2Widget);
         row.player22 = p22->addWidget(make_unique<WAnchor>());
         row.player22Elo = p22->addWidget(make_unique<WText>());
+
+        m_matchesTable->elementAt(n, 1)->setContentAlignment(AlignmentFlag::Middle);
+        m_matchesTable->elementAt(n, 3)->setContentAlignment(AlignmentFlag::Middle);
+
+        const WColor bg(230, 230, 230);
+        if (n % 2) {
+            m_matchesTable->elementAt(n, 0)->decorationStyle().setBackgroundColor(bg);
+            m_matchesTable->elementAt(n, 1)->decorationStyle().setBackgroundColor(bg);
+            m_matchesTable->elementAt(n, 2)->decorationStyle().setBackgroundColor(bg);
+            m_matchesTable->elementAt(n, 3)->decorationStyle().setBackgroundColor(bg);
+        }
 
         m_rows << row;
     }
@@ -416,12 +428,14 @@ void PlayerWidget::updateMatchTable()
             m_rows[i].score->setText(num2str(m.myScore) + ":" + num2str(m.opponentScore));
         else
             m_rows[i].score->setText((m.myScore > 0) ? "Win" : "Loss");
-        m_rows[i].eloChange->setText(diff2str(isCombined ? m.eloCombinedDiff : m.eloSeparateDiff));
+        const int diff = isCombined ? m.eloCombinedDiff : m.eloSeparateDiff;
+        m_rows[i].eloChange->setText(diff2str(diff) + " ELO");
+        m_rows[i].eloChange->decorationStyle().setForegroundColor((diff >= 0) ? WColor(0, 140, 0) : WColor(200, 0, 0));
 
         const auto setPlayerDetails = [&](WAnchor *a, WText *t, const FoosDB::PlayerMatch::Participant &p) {
             a->setText(player2str(p.player));
             a->setLink(player2href(p.player));
-            t->setText(p.player ? "(" + num2str(isCombined ? p.eloCombined : p.eloSeparate) + ")"
+            t->setText(p.player ? " (" + num2str(isCombined ? p.eloCombined : p.eloSeparate) + ")"
                                 : "");
         };
 

@@ -33,7 +33,7 @@ private:
         Games
     };
 
-    SortPolicy m_sortPolicy = Single;
+    SortPolicy m_sortPolicy = Combined;
 
     Wt::WVBoxLayout *m_layout;
     Wt::WLineEdit *m_searchBar;
@@ -42,7 +42,7 @@ private:
     Wt::WPushButton *m_nextButton;
 
     int m_page = 0;
-    int m_entriesPerPage = 50;
+    int m_entriesPerPage = 20;
 
     struct Row {
         Wt::WText *rank;

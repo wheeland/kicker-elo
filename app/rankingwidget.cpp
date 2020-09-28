@@ -38,9 +38,26 @@ RankingWidget::RankingWidget()
     titleText->setTextAlignment(AlignmentFlag::Center);
 
     //
+    // Add search bar
+    //
+    WContainerWidget *search = addToLayout<WContainerWidget>(m_layout);
+    search->setWidth("80%");
+    search->setMargin(WLength::Auto, Side::Left | Side::Right);
+
+    WText *searchText = search->addWidget(make_unique<WText>("Search: "));
+    searchText->setMargin("5%", Side::Left | Side::Right);
+    searchText->decorationStyle().font().setSize("150%");
+
+    m_searchBar = search->addWidget(make_unique<WLineEdit>(""));
+    m_searchBar->setWidth("70%");
+    m_searchBar->decorationStyle().font().setSize("130%");
+    m_searchBar->textInput().connect(this, &RankingWidget::updateSearch);
+
+    //
     // Add rankings table
     //
     m_table = addToLayout<WTable>(m_layout);
+    m_table->setMargin("2%", Side::Top);
 
     m_table->insertRow(0)->setHeight("2em");
     m_table->insertColumn(0)->setWidth("8%");
@@ -63,22 +80,6 @@ RankingWidget::RankingWidget()
     singleBtn->clicked().connect([=]() { m_sortPolicy = Single; update(); });
     doubleBtn->clicked().connect([=]() { m_sortPolicy = Double; update(); });
     gamesBtn->clicked().connect([=]() { m_sortPolicy = Games; update(); });
-
-    //
-    // Add search bar
-    //
-    WContainerWidget *search = addToLayout<WContainerWidget>(m_layout);
-    search->setWidth("80%");
-    search->setMargin(WLength::Auto, Side::Left | Side::Right);
-
-    WText *searchText = search->addWidget(make_unique<WText>("Search: "));
-    searchText->setMargin("5%", Side::Left | Side::Right);
-    searchText->decorationStyle().font().setSize("150%");
-
-    m_searchBar = search->addWidget(make_unique<WLineEdit>(""));
-    m_searchBar->setWidth("70%");
-    m_searchBar->decorationStyle().font().setSize("130%");
-    m_searchBar->textInput().connect(this, &RankingWidget::updateSearch);
 
     //
     // Add next/prev buttons

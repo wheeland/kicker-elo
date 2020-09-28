@@ -25,7 +25,15 @@ private:
     void updateSearch();
 
     FoosDB::Database *m_db;
-    FoosDB::EloDomain m_sortDomain = FoosDB::EloDomain::Combined;
+
+    enum SortPolicy {
+        Single = (int) FoosDB::EloDomain::Single,
+        Double = (int) FoosDB::EloDomain::Double,
+        Combined = (int) FoosDB::EloDomain::Combined,
+        Games
+    };
+
+    SortPolicy m_sortPolicy = Single;
 
     Wt::WVBoxLayout *m_layout;
     Wt::WLineEdit *m_searchBar;

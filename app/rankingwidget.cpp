@@ -57,11 +57,12 @@ RankingWidget::RankingWidget()
     WPushButton *comboBtn = m_table->elementAt(0, 2)->addWidget(make_unique<WPushButton>("Combo"));
     WPushButton *singleBtn = m_table->elementAt(0, 3)->addWidget(make_unique<WPushButton>("Single"));
     WPushButton *doubleBtn = m_table->elementAt(0, 4)->addWidget(make_unique<WPushButton>("Double"));
-    m_table->elementAt(0, 5)->addWidget(make_unique<WText>("<b>Games</b>"));
+    WPushButton *gamesBtn = m_table->elementAt(0, 5)->addWidget(make_unique<WPushButton>("Games"));
 
-    comboBtn->clicked().connect([=]() { m_sortDomain = FoosDB::EloDomain::Combined; update(); });
-    singleBtn->clicked().connect([=]() { m_sortDomain = FoosDB::EloDomain::Single; update(); });
-    doubleBtn->clicked().connect([=]() { m_sortDomain = FoosDB::EloDomain::Double; update(); });
+    comboBtn->clicked().connect([=]() { m_sortPolicy = Combined; update(); });
+    singleBtn->clicked().connect([=]() { m_sortPolicy = Single; update(); });
+    doubleBtn->clicked().connect([=]() { m_sortPolicy = Double; update(); });
+    gamesBtn->clicked().connect([=]() { m_sortPolicy = Games; update(); });
 
     //
     // Add search bar
@@ -126,7 +127,17 @@ void RankingWidget::updateSearch()
 
 void RankingWidget::update()
 {
-    const QVector<const FoosDB::Player*> players = m_db->getPlayersByRanking(m_sortDomain);
+    const FoosDB::EloDomain domain = (m_sortPolicy == Games) ? FoosDB::EloDomain::Combined
+                                                             : (FoosDB::EloDomain) m_sortPolicy;
+    QVector<const FoosDB::Player*> players = m_db->getPlayersByRanking(domain);
+
+    if (m_sortPolicy == Games) {
+        std::sort(players.begin(), players.end(), [](const FoosDB::Player *p1, const FoosDB::Player *p2) {
+            return (p1->matchCount == p2->matchCount) ? (p1->eloCombined > p2->eloCombined)
+                                                      : (p1->matchCount > p2->matchCount);
+        });
+    }
+
     QVector<QPair<const FoosDB::Player*, int>> board;
     for (int i = 0; i < players.size(); ++i)
         board << qMakePair(players[i], i);

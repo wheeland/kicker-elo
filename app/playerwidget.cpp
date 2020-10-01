@@ -144,11 +144,11 @@ PlayerWidget::PlayerWidget(int playerId)
     // setup matches table
     //
     m_matchesTable = addToLayout<WTable>(this);
-//    m_matchesTable->insertRow(0)->setHeight("2em");
-    m_matchesTable->insertColumn(0)->setWidth("22%");
-    m_matchesTable->insertColumn(1)->setWidth("28%");
-    m_matchesTable->insertColumn(2)->setWidth("10%");
-    m_matchesTable->insertColumn(3)->setWidth("28%");
+    m_matchesTable->addStyleClass("player_match_table");
+    m_matchesTable->insertColumn(0)->setStyleClass("player_match_col_1");
+    m_matchesTable->insertColumn(1)->setStyleClass("player_match_col_2");
+    m_matchesTable->insertColumn(2)->setStyleClass("player_match_col_3");
+    m_matchesTable->insertColumn(3)->setStyleClass("player_match_col_4");
 
 //    m_matchesTable->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Competition</b>"));
 //    m_matchesTable->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Team 1</b>"));
@@ -313,11 +313,11 @@ void PlayerWidget::updateOpponents()
 //                diff2str(ops.eloDelta) + " <i>(" + num2str(ops.matchCount) + " matches)</i></p>";
 //    };
 
-    m_opponents->insertRow(0)->setHeight("2em");
-    m_opponents->insertColumn(0)->setWidth("15vw");
-    m_opponents->insertColumn(1)->setWidth("15vw");
-    m_opponents->insertColumn(2)->setWidth("15vw");
-    m_opponents->insertColumn(3)->setWidth("15vw");
+    m_opponents->insertRow(0)->setStyleClass("player_match_table_1");
+    m_opponents->insertColumn(0)->setStyleClass("player_match_col_1");
+    m_opponents->insertColumn(1)->setStyleClass("player_match_col_2");
+    m_opponents->insertColumn(2)->setStyleClass("player_match_col_3");
+    m_opponents->insertColumn(3)->setStyleClass("player_match_col_4");
     m_opponents->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Evil Wizards</b>"));
     m_opponents->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Poor Souls</b>"));
     m_opponents->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Idiots</b>"));
@@ -373,7 +373,6 @@ void PlayerWidget::updateMatchTable()
         const int n = m_matchesTable->rowCount();
 
         Row row;
-        m_matchesTable->insertRow(n)->setHeight("1.4em");
 
         const auto addVContainer = [&](int c) {
             WContainerWidget *container = m_matchesTable->elementAt(n, c)->addWidget(make_unique<WContainerWidget>());
@@ -382,11 +381,14 @@ void PlayerWidget::updateMatchTable()
             return container;
         };
 
-        WContainerWidget *competition = addVContainer(0);
-        row.date = addToLayout<WText>(competition);
+        WContainerWidget *competition = m_matchesTable->elementAt(n, 0)->addWidget(make_unique<WContainerWidget>());
+        competition->addStyleClass("player_match_competition");
+        competition->setPadding("0px");
+
+        row.date = competition->addWidget(make_unique<WText>());
         row.date->decorationStyle().font().setSize(FontSize::Small);
         row.date->decorationStyle().font().setStyle(FontStyle::Italic);
-        row.competition = addToLayout<WText>(competition);
+        row.competition = competition->addWidget(make_unique<WText>());
         row.competition->decorationStyle().font().setSize(FontSize::XSmall);
 
         WContainerWidget *player1Widget = addVContainer(1);
@@ -410,11 +412,9 @@ void PlayerWidget::updateMatchTable()
         row.player22 = p22->addWidget(make_unique<WAnchor>());
         row.player22Elo = p22->addWidget(make_unique<WText>());
 
-        const WColor bg1(235, 235, 235), bg2(225, 225, 225);
         for (int i = 0; i < 4; ++i) {
-            m_matchesTable->elementAt(n, i)->setContentAlignment(AlignmentFlag::Middle);
-            const bool odd = (n % 2 == 1);
-            m_matchesTable->elementAt(n, i)->decorationStyle().setBackgroundColor(odd ? bg2 : bg1);
+            const std::string c = (n % 2 == 1) ? "player_match_table_1" : "player_match_table_2";
+            m_matchesTable->elementAt(n, i)->addStyleClass(c);
         }
 
         m_rows << row;
@@ -428,7 +428,7 @@ void PlayerWidget::updateMatchTable()
     for (int i = 0; i < count; ++i) {
         const FoosDB::PlayerMatch &m = matches[i];
 
-        m_rows[i].date->setText(date2str(m.date));
+        m_rows[i].date->setText(date2str(m.date) + "<br/>");
         m_rows[i].competition->setText(m.competitionName.toStdString());
         m_rows[i].competition->setTextFormat(TextFormat::UnsafeXHTML);
 

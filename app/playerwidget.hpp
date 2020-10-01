@@ -72,6 +72,7 @@ private:
         // column 1
         Wt::WText *date;
         Wt::WText *competition;
+        Wt::WText *compInfo;
         // column 2
         Wt::WAnchor *player1;
         Wt::WText *player1Elo;

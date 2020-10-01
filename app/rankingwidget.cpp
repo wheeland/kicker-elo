@@ -41,35 +41,29 @@ RankingWidget::RankingWidget()
     // Add search bar
     //
     WContainerWidget *search = addToLayout<WContainerWidget>(m_layout);
+    search->addStyleClass("player_search");
     search->setLayout(make_unique<WHBoxLayout>());
-    search->setWidth("80%");
-    search->setMargin(WLength::Auto, Side::Left | Side::Right);
 
     WText *searchText = addToLayout<WText>(search->layout(), "Search: ");
-    searchText->setMargin("5%", Side::Left | Side::Right);
-    searchText->decorationStyle().font().setSize("150%");
+    searchText->addStyleClass("player_search_text");
 
     m_searchBar = addToLayout<WLineEdit>(search->layout());
-    m_searchBar->setWidth("60%");
-    m_searchBar->decorationStyle().font().setSize("130%");
+    m_searchBar->addStyleClass("player_search_box");
     m_searchBar->textInput().connect(this, &RankingWidget::updateSearch);
 
     //
     // Add rankings table
     //
     m_table = addToLayout<WTable>(m_layout);
-    m_table->setWidth("100%");
-    m_table->setMargin("2%", Side::Top);
+    m_table->addStyleClass("ranking_table");
 
-    m_table->insertRow(0)->setHeight("2em");
-    m_table->insertColumn(0)->setWidth("8%");
-    m_table->insertColumn(1)->setWidth("40%");
-    m_table->insertColumn(2)->setWidth("13%");
-    m_table->insertColumn(3)->setWidth("13%");
-    m_table->insertColumn(4)->setWidth("13%");
-    m_table->insertColumn(5)->setWidth("13%");
-
-    m_table->toggleStyleClass("table-bordered", true);
+    m_table->insertRow(0)->setStyleClass("ranking_table_header");
+    m_table->insertColumn(0)->setStyleClass("ranking_col_1");
+    m_table->insertColumn(1)->setStyleClass("ranking_col_2");
+    m_table->insertColumn(2)->setStyleClass("ranking_col_3");
+    m_table->insertColumn(3)->setStyleClass("ranking_col_4");
+    m_table->insertColumn(4)->setStyleClass("ranking_col_5");
+    m_table->insertColumn(5)->setStyleClass("ranking_col_6");
 
     m_table->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Rank</b>"));
     m_table->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Name</b>"));
@@ -168,7 +162,7 @@ void RankingWidget::update()
         const int n = m_table->rowCount();
 
         Row row;
-        m_table->insertRow(n)->setHeight("1.8em");
+        m_table->insertRow(n);
         row.rank = m_table->elementAt(n, 0)->addWidget(make_unique<WText>());
         row.player = m_table->elementAt(n, 1)->addWidget(make_unique<WAnchor>(createPlayerLink(0)));
         const auto createText = []() {
@@ -182,11 +176,9 @@ void RankingWidget::update()
         row.matchCount = m_table->elementAt(n, 5)->addWidget(createText());
         m_rows << row;
 
-        const WColor bg1(235, 235, 235), bg2(225, 225, 225);
         for (int i = 0; i < 6; ++i) {
-            m_table->elementAt(n, i)->setContentAlignment(AlignmentFlag::Middle);
-            const bool odd = (n % 2 == 1);
-            m_table->elementAt(n, i)->decorationStyle().setBackgroundColor(odd ? bg2 : bg1);
+            const std::string c = (n % 2 == 1) ? "ranking_table_1" : "ranking_table_2";
+            m_table->elementAt(n, i)->addStyleClass(c);
         }
     }
 

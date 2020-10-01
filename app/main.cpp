@@ -35,29 +35,14 @@ EloApp::EloApp(const WEnvironment& env)
 {
     setTitle("ELO!");
 
-    // remove white border around <body>
-    styleSheet().addRule("body", "margin: 0px");
-
     WContainerWidget *rootBg = root()->addWidget(make_unique<WContainerWidget>());
-    rootBg->decorationStyle().setBackgroundColor(WColor(200, 200, 200));
-    rootBg->setWidth("100vw");
-    rootBg->setHeight("100vh");
-    rootBg->setPositionScheme(PositionScheme::Fixed);
+    rootBg->addStyleClass("bg");
 
     WContainerWidget *contentBg = root()->addWidget(make_unique<WContainerWidget>());
-    contentBg->setMaximumSize("800", WLength::Auto);
-    contentBg->setHeight("100vh");
-    contentBg->setMargin(WLength::Auto);
-    contentBg->setPositionScheme(PositionScheme::Relative);
-    contentBg->decorationStyle().setBackgroundColor(WColor(240, 240, 240));
+    contentBg->addStyleClass("content_bg");
 
     WContainerWidget *content = contentBg->addWidget(make_unique<WContainerWidget>());
-    content->setWidth("95%");
-    content->setHeight("95%");
-    content->setMargin(WLength::Auto);
-    content->setPositionScheme(PositionScheme::Relative);
-    content->setOverflow(Overflow::Scroll, Orientation::Vertical);
-    content->decorationStyle().setBackgroundColor(WColor(240, 240, 240));
+    content->addStyleClass("content");
 
     m_backToRanking = content->addWidget(make_unique<WAnchor>());
     m_backToRanking->setText("<<");
@@ -70,6 +55,8 @@ EloApp::EloApp(const WEnvironment& env)
     m_playerWidget = m_stack->addWidget(make_unique<PlayerWidget>(1917));
 
     internalPathChanged().connect(this, &EloApp::onInternalPathChanged);
+
+    useStyleSheet("style.css");
 }
 
 void EloApp::onInternalPathChanged(const std::string &path)

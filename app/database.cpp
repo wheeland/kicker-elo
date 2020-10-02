@@ -246,7 +246,7 @@ QVector<PlayerVsPlayerStats> Database::getPlayerVsPlayerStats(const Player *play
         "partner_wins, partner_draws, partner_losses, "
         "combined_delta, double_delta, single_delta, "
         "partner_combined_delta, partner_double_delta "
-        "FROM player_vs_player_stats AS pvp"
+        "FROM player_vs_player_stats AS pvp "
         "WHERE pvp.player_id = %1"
     );
 

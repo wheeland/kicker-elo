@@ -66,7 +66,7 @@ private:
 
     int m_page = 0;
     int m_entriesPerPage = 20;
-    FoosDB::EloDomain m_displayedDomain = FoosDB::EloDomain::Single;
+    FoosDB::EloDomain m_displayedDomain = FoosDB::EloDomain::Combined;
 
     struct Row {
         // column 1

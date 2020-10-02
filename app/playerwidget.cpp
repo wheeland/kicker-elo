@@ -70,14 +70,14 @@ PlayerWidget::PlayerWidget(int playerId)
     eloNumbers->setMargin(WLength::Auto, Side::Left | Side::Right);
     eloNumbers->setContentAlignment(AlignmentFlag::Center);
 
-    const auto addText = [&](WContainerWidget *container, const std::string &str, FontSize sz) {
+    const auto addText = [&](WContainerWidget *container, const WString &str, FontSize sz) {
         WText *txt = addToLayout<WText>(container, str);
         txt->decorationStyle().font().setSize(sz);
         return txt;
     };
 
     const auto addEloButton = [&](WContainerWidget *container) {
-        WPushButton *btn = addToLayout<WPushButton>(container, "Select");
+        WPushButton *btn = addToLayout<WPushButton>(container, tr("player_select"));
         btn->setWidth("50%");
         btn->setMargin("5%", Side::Top);
         btn->setMargin(WLength::Auto, Side::Left | Side::Right);
@@ -89,7 +89,7 @@ PlayerWidget::PlayerWidget(int playerId)
     groupCombined->setWidth("25%");
     groupCombined->setOffsets("10%", Side::Left);
     groupCombined->setLayout(make_unique<WVBoxLayout>());
-    addText(groupCombined, "Combined", FontSize::Large);
+    addText(groupCombined, tr("combo"), FontSize::Large);
     m_eloCombined = addText(groupCombined, "", FontSize::XLarge);
     m_eloCombinedPeak = addText(groupCombined, "", FontSize::Large);
     m_eloCombinedButton = addEloButton(groupCombined);
@@ -99,7 +99,7 @@ PlayerWidget::PlayerWidget(int playerId)
     groupDouble->setWidth("25%");
     groupDouble->setOffsets("37.5%", Side::Left);
     groupDouble->setLayout(make_unique<WVBoxLayout>());
-    addText(groupDouble, "Double", FontSize::Large);
+    addText(groupDouble, tr("double"), FontSize::Large);
     m_eloDouble = addText(groupDouble, "", FontSize::XLarge);
     m_eloDoublePeak = addText(groupDouble, "", FontSize::Large);
     m_eloDoubleButton = addEloButton(groupDouble);
@@ -109,7 +109,7 @@ PlayerWidget::PlayerWidget(int playerId)
     groupSingle->setWidth("25%");
     groupSingle->setOffsets("65%", Side::Left);
     groupSingle->setLayout(make_unique<WVBoxLayout>());
-    addText(groupSingle, "Single", FontSize::Large);
+    addText(groupSingle, tr("single"), FontSize::Large);
     m_eloSingle = addText(groupSingle, "", FontSize::XLarge);
     m_eloSinglePeak = addText(groupSingle, "", FontSize::Large);
     m_eloSingleButton = addEloButton(groupSingle);
@@ -149,12 +149,6 @@ PlayerWidget::PlayerWidget(int playerId)
     m_matchesTable->insertColumn(1)->setStyleClass("player_match_col_2");
     m_matchesTable->insertColumn(2)->setStyleClass("player_match_col_3");
     m_matchesTable->insertColumn(3)->setStyleClass("player_match_col_4");
-
-//    m_matchesTable->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Competition</b>"));
-//    m_matchesTable->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Team 1</b>"));
-//    m_matchesTable->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Score</b>"));
-//    m_matchesTable->elementAt(0, 3)->addWidget(make_unique<WText>("<b>Team 2</b>"));
-//    m_matchesTable->elementAt(0, 4)->addWidget(make_unique<WText>("<b>ELO</b>"));
 
     //
     // setup buttons
@@ -219,9 +213,9 @@ void PlayerWidget::setPlayerId(int id)
     m_eloCombined->setText("<b>" + num2str(ec) + "</b>");
     m_eloDouble->setText("<b>" + num2str(ed) + "</b>");
     m_eloSingle->setText("<b>" + num2str(es) + "</b>");
-    m_eloCombinedPeak->setText("(Peak: <b>" + num2str(m_peakCombined) + "</b>)");
-    m_eloDoublePeak->setText("(Peak: <b>" + num2str(m_peakDouble) + "</b>)");
-    m_eloSinglePeak->setText("(Peak: <b>" + num2str(m_peakSingle) + "</b>)");
+    m_eloCombinedPeak->setText(tr("player_peak").arg(num2str(m_peakCombined)));
+    m_eloDoublePeak->setText(tr("player_peak").arg(num2str(m_peakDouble)));
+    m_eloSinglePeak->setText(tr("player_peak").arg(num2str(m_peakSingle)));
 
     updateChart();
     updateOpponents();
@@ -435,7 +429,7 @@ void PlayerWidget::updateMatchTable()
         if (m.myScore > 1 || m.opponentScore > 1)
             m_rows[i].score->setText(num2str(m.myScore) + ":" + num2str(m.opponentScore));
         else
-            m_rows[i].score->setText((m.myScore > 0) ? "Win" : "Loss");
+            m_rows[i].score->setText((m.myScore > 0) ? tr("win") : tr("loss"));
         const int diff = isCombined ? m.eloCombinedDiff : m.eloSeparateDiff;
         m_rows[i].eloChange->setText(diff2str(diff) + " ELO");
         m_rows[i].eloChange->decorationStyle().setForegroundColor((diff >= 0) ? WColor(0, 140, 0) : WColor(200, 0, 0));

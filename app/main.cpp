@@ -33,7 +33,7 @@ private:
 EloApp::EloApp(const WEnvironment& env)
     : WApplication(env)
 {
-    setTitle("ELO!");
+    setTitle("TFVB Elo Rankings");
 
     WContainerWidget *rootBg = root()->addWidget(make_unique<WContainerWidget>());
     rootBg->addStyleClass("bg");
@@ -57,6 +57,7 @@ EloApp::EloApp(const WEnvironment& env)
     internalPathChanged().connect(this, &EloApp::onInternalPathChanged);
 
     useStyleSheet("style.css");
+    messageResourceBundle().use("elo");
 }
 
 void EloApp::onInternalPathChanged(const std::string &path)

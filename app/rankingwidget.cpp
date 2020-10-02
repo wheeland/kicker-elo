@@ -34,7 +34,7 @@ RankingWidget::RankingWidget()
     // Add title
     //
     WText *titleText = addToLayout<WText>(m_layout);
-    titleText->setText("<h1>TFVB ELO Ranking</h1>");
+    titleText->setText(tr("ranking_title"));
     titleText->setTextAlignment(AlignmentFlag::Center);
 
     //
@@ -44,7 +44,7 @@ RankingWidget::RankingWidget()
     search->addStyleClass("player_search");
     search->setLayout(make_unique<WHBoxLayout>());
 
-    WText *searchText = addToLayout<WText>(search->layout(), "Search: ");
+    WText *searchText = addToLayout<WText>(search->layout(), tr("ranking_search"));
     searchText->addStyleClass("player_search_text");
 
     m_searchBar = addToLayout<WLineEdit>(search->layout());
@@ -65,13 +65,13 @@ RankingWidget::RankingWidget()
     m_table->insertColumn(4)->setStyleClass("ranking_col_5");
     m_table->insertColumn(5)->setStyleClass("ranking_col_6");
 
-    m_table->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Rank</b>"));
-    m_table->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Name</b>"));
+    m_table->elementAt(0, 0)->addWidget(make_unique<WText>(tr("ranking_rank")))->decorationStyle().font().setWeight(FontWeight::Bold);
+    m_table->elementAt(0, 1)->addWidget(make_unique<WText>(tr("ranking_name")))->decorationStyle().font().setWeight(FontWeight::Bold);
 
-    m_comboButton = m_table->elementAt(0, 2)->addWidget(make_unique<WPushButton>("Combo"));
-    m_singleButton = m_table->elementAt(0, 3)->addWidget(make_unique<WPushButton>("Single"));
-    m_doubleButton = m_table->elementAt(0, 4)->addWidget(make_unique<WPushButton>("Double"));
-    m_gamesButton = m_table->elementAt(0, 5)->addWidget(make_unique<WPushButton>("Games"));
+    m_comboButton = m_table->elementAt(0, 2)->addWidget(make_unique<WPushButton>(tr("combo")));
+    m_singleButton = m_table->elementAt(0, 3)->addWidget(make_unique<WPushButton>(tr("single")));
+    m_doubleButton = m_table->elementAt(0, 4)->addWidget(make_unique<WPushButton>(tr("double")));
+    m_gamesButton = m_table->elementAt(0, 5)->addWidget(make_unique<WPushButton>(tr("games")));
 
     m_comboButton->clicked().connect([=]() { m_sortPolicy = Combined; update(); });
     m_singleButton->clicked().connect([=]() { m_sortPolicy = Single; update(); });

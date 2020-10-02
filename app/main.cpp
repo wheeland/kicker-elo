@@ -45,7 +45,7 @@ EloApp::EloApp(const WEnvironment& env)
     content->addStyleClass("content");
 
     m_backToRanking = content->addWidget(make_unique<WAnchor>());
-    m_backToRanking->setText("<<");
+    m_backToRanking->setText("&lt;&lt;");
     m_backToRanking->setPositionScheme(PositionScheme::Absolute);
     m_backToRanking->setOffsets("-100px", Side::Left);
     m_backToRanking->setOffsets("100px", Side::Top);

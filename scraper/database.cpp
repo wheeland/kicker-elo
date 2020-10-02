@@ -392,6 +392,8 @@ void Database::recompute()
         }
     };
 
+    qWarning() << "Recomputing" << sortedMatches.size() << "matches";
+
     for (const Match &match : sortedMatches) {
         const float result = (match.score1 > match.score2) ? 0.0f :
                              (match.score1 < match.score2) ? 1.0f : 0.5f;
@@ -437,6 +439,8 @@ void Database::recompute()
             rateDouble(match.p22, pm22id, false, result, k, c2,  c1, c11);
         }
     }
+
+    qWarning() << "Build PVP stats";
 
     //
     // Store current ELOs in separate table
@@ -491,6 +495,7 @@ void Database::recompute()
     execQuery("DELETE FROM elo_separate");
     execQuery("DELETE FROM elo_combined");
     execQuery("DELETE FROM elo_current");
+    execQuery("DELETE FROM player_vs_player_stats");
 
     QSqlQuery query;
 

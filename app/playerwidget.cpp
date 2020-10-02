@@ -42,13 +42,6 @@ static WLink player2href(const FoosDB::Player *p)
     return p ? WLink(LinkType::InternalPath, "/player/" + num2str(p->id)) : WLink();
 };
 
-void sortPvp(QVector<FoosDB::PlayerVsPlayerStats> &list, qint16 FoosDB::PlayerVsPlayerStats::*member)
-{
-    std::sort(list.begin(), list.end(), [=](const FoosDB::PlayerVsPlayerStats &a, const FoosDB::PlayerVsPlayerStats &b) {
-        return a.*member < b.*member;
-    });
-}
-
 PlayerWidget::PlayerWidget(int playerId)
     : m_db(FoosDB::Database::instance())
 {
@@ -298,47 +291,84 @@ void PlayerWidget::updateOpponents()
     if (!m_player)
         return;
 
-//    const auto getstr = [](const QVector<FoosDB::PlayerVsPlayerStats> &stats, int idx) {
-//        if (qAbs(idx) > stats.size())
-//            return std::string();
-//        const int realIdx = (idx > 0) ? (idx - 1) : (stats.size() + idx);
-//        const FoosDB::PlayerVsPlayerStats ops = stats.value(realIdx);
-//        return "<p><b>" + player2str(ops.player) + "</b>: " +
-//                diff2str(ops.eloDelta) + " <i>(" + num2str(ops.matchCount) + " matches)</i></p>";
-//    };
+    const auto sortPvp = [](QVector<FoosDB::PlayerVsPlayerStats> &list, qint16 FoosDB::PlayerVsPlayerStats::*member)
+    {
+        std::sort(list.begin(), list.end(), [=](const FoosDB::PlayerVsPlayerStats &a, const FoosDB::PlayerVsPlayerStats &b) {
+            return a.*member < b.*member;
+        });
+    };
 
-    m_opponents->insertRow(0)->setStyleClass("player_match_table_1");
-    m_opponents->insertColumn(0)->setStyleClass("player_match_col_1");
-    m_opponents->insertColumn(1)->setStyleClass("player_match_col_2");
-    m_opponents->insertColumn(2)->setStyleClass("player_match_col_3");
-    m_opponents->insertColumn(3)->setStyleClass("player_match_col_4");
-    m_opponents->elementAt(0, 0)->addWidget(make_unique<WText>("<b>Evil Wizards</b>"));
-    m_opponents->elementAt(0, 1)->addWidget(make_unique<WText>("<b>Poor Souls</b>"));
-    m_opponents->elementAt(0, 2)->addWidget(make_unique<WText>("<b>Idiots</b>"));
-    m_opponents->elementAt(0, 3)->addWidget(make_unique<WText>("<b>Heroes</b>"));
+    const auto pvpStr = [](const QVector<FoosDB::PlayerVsPlayerStats> &stats, int idx, qint16 FoosDB::PlayerVsPlayerStats::*member) {
+        if (qAbs(idx) > stats.size())
+            return WString();
 
+        const int realIdx = (idx > 0) ? (idx - 1) : (stats.size() + idx);
+        const FoosDB::PlayerVsPlayerStats pvp = stats.value(realIdx);
+        const int delta = pvp.*member;
+
+        if ((idx > 0 && delta > 0) || (idx < 0 && delta < 0))
+            return WString();
+
+        return WString("<p><b>" + player2str(pvp.player) + "</b>: " +
+                diff2str(delta) + "</p>");
+    };
+
+    const bool isSingle = (m_displayedDomain == FoosDB::EloDomain::Single);
     QVector<FoosDB::PlayerVsPlayerStats> opponents = m_pvpStats;
     QVector<FoosDB::PlayerVsPlayerStats> partners = m_pvpStats;
 
-    sortPvp(opponents, &FoosDB::PlayerVsPlayerStats::combinedDiff);
-    sortPvp(partners, &FoosDB::PlayerVsPlayerStats::partnerDoubleDiff);
+    qint16 FoosDB::PlayerVsPlayerStats::*opponentsDelta;
+    qint16 FoosDB::PlayerVsPlayerStats::*partnersDelta;
 
-//    for (int i = 1 ; i <= 3; ++i) {
-//        const std::string o1 = getstr(m_combinedStats.m_opponentDelta, i);
-//        const std::string o2 = getstr(m_combinedStats.m_opponentDelta, -i);
-//        const std::string p1 = getstr(m_combinedStats.m_partnerDelta, i);
-//        const std::string p2 = getstr(m_combinedStats.m_partnerDelta, -i);
+    if (m_displayedDomain == FoosDB::EloDomain::Single) {
+        opponentsDelta = &FoosDB::PlayerVsPlayerStats::singleDiff;
+        sortPvp(opponents, opponentsDelta);
+    }
+    else if (m_displayedDomain == FoosDB::EloDomain::Double) {
+        opponentsDelta = &FoosDB::PlayerVsPlayerStats::doubleDiff;
+        partnersDelta = &FoosDB::PlayerVsPlayerStats::partnerDoubleDiff;
+        sortPvp(opponents, &FoosDB::PlayerVsPlayerStats::doubleDiff);
+        sortPvp(partners, &FoosDB::PlayerVsPlayerStats::partnerDoubleDiff);
+    }
+    else if (m_displayedDomain == FoosDB::EloDomain::Combined) {
+        opponentsDelta = &FoosDB::PlayerVsPlayerStats::combinedDiff;
+        partnersDelta = &FoosDB::PlayerVsPlayerStats::partnerCombinedDiff;
+        sortPvp(opponents, &FoosDB::PlayerVsPlayerStats::combinedDiff);
+        sortPvp(partners, &FoosDB::PlayerVsPlayerStats::partnerCombinedDiff);
+    }
 
-//        if (o1.empty() && o2.empty() && p1.empty() && p2.empty())
-//            break;
+    m_opponents->clear();
+    m_opponents->insertRow(0)->setStyleClass("player_match_table_1");
+    m_opponents->insertColumn(0)->setStyleClass("player_match_col_1");
+    m_opponents->insertColumn(1)->setStyleClass("player_match_col_2");
+    m_opponents->elementAt(0, 0)->addWidget(make_unique<WText>(tr("player_opponents_loved")));
+    m_opponents->elementAt(0, 1)->addWidget(make_unique<WText>(tr("player_opponents_feared")));
 
-//        m_opponents->insertRow(m_opponents->rowCount() - 1)->setHeight("1.8em");;
-//        const int n = m_opponents->rowCount() - 1;
-//        m_opponents->elementAt(n, 0)->addWidget(make_unique<WText>(o1));
-//        m_opponents->elementAt(n, 1)->addWidget(make_unique<WText>(o2));
-//        m_opponents->elementAt(n, 2)->addWidget(make_unique<WText>(p1));
-//        m_opponents->elementAt(n, 3)->addWidget(make_unique<WText>(p2));
-//    }
+    if (!isSingle) {
+        m_opponents->insertColumn(2)->setStyleClass("player_match_col_3");
+        m_opponents->insertColumn(3)->setStyleClass("player_match_col_4");
+        m_opponents->elementAt(0, 2)->addWidget(make_unique<WText>(tr("player_partners_loved")));
+        m_opponents->elementAt(0, 3)->addWidget(make_unique<WText>(tr("player_partners_feared")));
+    }
+
+    for (int i = 1 ; i <= 3; ++i) {
+        const WString o1 = pvpStr(opponents, -i, opponentsDelta);
+        const WString o2 = pvpStr(opponents, i, opponentsDelta);
+        const WString p1 = isSingle ? WString() : pvpStr(partners, -i, partnersDelta);
+        const WString p2 = isSingle ? WString() : pvpStr(partners, i, partnersDelta);
+
+        if (o1.empty() && o2.empty() && p1.empty() && p2.empty())
+            break;
+
+        m_opponents->insertRow(m_opponents->rowCount() - 1)->setHeight("1.8em");;
+        const int n = m_opponents->rowCount() - 1;
+        m_opponents->elementAt(n, 0)->addWidget(make_unique<WText>(o1));
+        m_opponents->elementAt(n, 1)->addWidget(make_unique<WText>(o2));
+        if (!isSingle) {
+            m_opponents->elementAt(n, 2)->addWidget(make_unique<WText>(p1));
+            m_opponents->elementAt(n, 3)->addWidget(make_unique<WText>(p2));
+        }
+    }
 }
 
 void PlayerWidget::updateMatchTable()

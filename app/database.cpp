@@ -272,7 +272,7 @@ QVector<PlayerVsPlayerStats> Database::getPlayerVsPlayerStats(const Player *play
             singleWins, singleDraws, singleLosses,
             doubleWins, doubleDraws, doubleLosses,
             partnerWins, partnerDraws, partnerLosses,
-            combinedDelta, doubleDelta, singleDelta,
+            singleDelta, doubleDelta, combinedDelta,
             partnerCombinedDelta, partnerDoubleDelta
         };
     }

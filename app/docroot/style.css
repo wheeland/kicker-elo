@@ -73,6 +73,7 @@ body {
 .ranking_table_header {
     height: 2em;
     vertical-align: middle;
+    font-weight: bold;
 }
 
 .ranking_table_1 {

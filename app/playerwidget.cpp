@@ -111,6 +111,10 @@ PlayerWidget::PlayerWidget(int playerId)
     m_eloDoubleButton->clicked().connect([=]() { setDomain(FoosDB::EloDomain::Double); });
     m_eloSingleButton->clicked().connect([=]() { setDomain(FoosDB::EloDomain::Single); });
 
+    m_eloCombinedButton->setEnabled(m_displayedDomain != FoosDB::EloDomain::Combined);
+    m_eloDoubleButton->setEnabled(m_displayedDomain != FoosDB::EloDomain::Double);
+    m_eloSingleButton->setEnabled(m_displayedDomain != FoosDB::EloDomain::Single);
+
     //
     // setup ELO plot
     //

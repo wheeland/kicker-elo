@@ -108,7 +108,14 @@ void Database::createTables()
         double_delta smallint NOT NULL, \
         single_delta smallint NOT NULL, \
         partner_combined_delta smallint NOT NULL, \
-        partner_double_delta smallint NOT NULL)");
+        partner_double_delta smallint NOT NULL)"
+    );
+
+    execQuery("CREATE INDEX IF NOT EXISTS played_matches_player_index ON played_matches(player_id)");
+    execQuery("CREATE INDEX IF NOT EXISTS played_matches_match_index ON played_matches(match_id)");
+    execQuery("CREATE INDEX IF NOT EXISTS elo_combined_match_index ON elo_combined(played_match_id)");
+    execQuery("CREATE INDEX IF NOT EXISTS elo_separate_match_index ON elo_separate(played_match_id)");
+    execQuery("CREATE INDEX IF NOT EXISTS pvp_index ON player_vs_player_stats(player_id)");
 }
 
 void Database::checkQueryStatus(const QSqlQuery &query) const

@@ -128,3 +128,13 @@ body {
     text-align: center;
     vertical-align: middle;
 }
+
+.player_elo_plus {
+    font-weight: bold;
+    color: #008000
+}
+
+.player_elo_minus {
+    font-weight: bold;
+    color: #C00000
+}

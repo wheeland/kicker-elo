@@ -465,8 +465,8 @@ void PlayerWidget::updateMatchTable()
         else
             m_rows[i].score->setText((m.myScore > 0) ? tr("win") : tr("loss"));
         const int diff = isCombined ? m.eloCombinedDiff : m.eloSeparateDiff;
-        m_rows[i].eloChange->setText(diff2str(diff) + " ELO");
-        m_rows[i].eloChange->decorationStyle().setForegroundColor((diff >= 0) ? WColor(0, 140, 0) : WColor(200, 0, 0));
+        m_rows[i].eloChange->setText(diff2str(diff));
+        m_rows[i].eloChange->setStyleClass((diff >= 0) ? "player_elo_plus" : "player_elo_minus");
 
         const auto setPlayerDetails = [&](WAnchor *a, WText *t, const FoosDB::PlayerMatch::Participant &p) {
             a->setText(player2str(p.player));

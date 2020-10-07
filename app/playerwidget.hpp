@@ -58,15 +58,19 @@ private:
     Wt::WText *m_eloSinglePeak;
     Wt::WPushButton *m_eloSingleButton;
 
-    Wt::WTable *m_opponents;
-    Wt::WTable *m_partners;
+    Wt::WTable *m_opponentsWin;
+    Wt::WTable *m_opponentsLose;
+    Wt::WTable *m_partnersWin;
+    Wt::WTable *m_partnersLose;
+    Wt::WContainerWidget *m_partnersWinGroup;
+    Wt::WContainerWidget *m_partnersLoseGroup;
     Wt::WTable *m_matchesTable;
 
     Wt::WPushButton *m_prevButton;
     Wt::WPushButton *m_nextButton;
 
     int m_page = 0;
-    int m_entriesPerPage = 20;
+    int m_matchesPerPage = 20;
     FoosDB::EloDomain m_displayedDomain = FoosDB::EloDomain::Combined;
 
     struct Row {

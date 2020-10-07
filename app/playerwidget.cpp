@@ -1,6 +1,7 @@
 #include "playerwidget.hpp"
 #include "util.hpp"
 
+#include <Wt/WHBoxLayout.h>
 #include <Wt/WVBoxLayout.h>
 #include <Wt/WDate.h>
 #include <Wt/WTime.h>
@@ -135,19 +136,27 @@ PlayerWidget::PlayerWidget(int playerId)
     //
     // setup opponents table
     //
-    WText *opponentsTitle = addToLayout<WText>(this);
-    opponentsTitle->setText(tr("player_opponents"));
-    opponentsTitle->setTextAlignment(AlignmentFlag::Center);
-    m_opponents = addToLayout<WTable>(this);
-    m_opponents->insertColumn(0)->setStyleClass("player_opponents_col");
-    m_opponents->insertColumn(1)->setStyleClass("player_opponents_col");
+    WContainerWidget *pvp = addToLayout<WContainerWidget>(this);
+    pvp->setLayout(make_unique<WHBoxLayout>());
 
-    WText *partnersTitle = addToLayout<WText>(this);
-    partnersTitle->setText(tr("player_partners"));
-    partnersTitle->setTextAlignment(AlignmentFlag::Center);
-    m_partners = addToLayout<WTable>(this);
-    m_partners->insertColumn(0)->setStyleClass("player_opponents_col");
-    m_partners->insertColumn(1)->setStyleClass("player_opponents_col");
+    const auto addTable = [&](const WString &title, WContainerWidget *group) {
+        pvp->layout()->addWidget(std::unique_ptr<WContainerWidget>(group));
+        group->setContentAlignment(AlignmentFlag::Center);
+
+        WText *tableTitle = group->addWidget(make_unique<WText>());
+        tableTitle->setText(title);
+        tableTitle->setTextAlignment(AlignmentFlag::Center);
+
+        WTable *table = group->addWidget(make_unique<WTable>());
+        table->insertColumn(0)->setStyleClass("player_opponents_col");
+        return table;
+    };
+    m_partnersWinGroup = new WContainerWidget();
+    m_partnersLoseGroup = new WContainerWidget();
+    m_opponentsWin  = addTable(tr("player_opponents_loved"), new WContainerWidget());
+    m_opponentsLose = addTable(tr("player_opponents_feared"), new WContainerWidget());
+    m_partnersWin   = addTable(tr("player_partners_loved"), m_partnersWinGroup);
+    m_partnersLose  = addTable(tr("player_partners_feared"), m_partnersLoseGroup);
 
     //
     // setup matches table
@@ -252,6 +261,7 @@ void PlayerWidget::setDomain(FoosDB::EloDomain domain)
     m_displayedDomain = domain;
 
     selectChart();
+    updateOpponents();
     updateMatchTable();
 
     m_eloCombinedButton->setEnabled(m_displayedDomain != FoosDB::EloDomain::Combined);
@@ -306,8 +316,10 @@ void PlayerWidget::selectChart()
 
 void PlayerWidget::updateOpponents()
 {
-    m_opponents->clear();
-    m_partners->clear();
+    m_opponentsWin->clear();
+    m_opponentsLose->clear();
+    m_partnersWin->clear();
+    m_partnersLose->clear();
 
     if (!m_player)
         return;
@@ -342,12 +354,18 @@ void PlayerWidget::updateOpponents()
     if (!isSingle)
         sortPvp(partners, partnersDelta);
 
-    m_partners->setHidden(isSingle);
+    m_partnersWinGroup->setHidden(isSingle);
+    m_partnersLoseGroup->setHidden(isSingle);
 
-    for (int i = 0 ; i < 3; ++i) {
+    for (int i = 0 ; i < 10; ++i) {
         const std::string cssClass = (i % 2 == 0) ? "player_pvp_1" : "player_pvp_2";
 
-        const auto addRow = [&](WTable *table, const QVector<FoosDB::PlayerVsPlayerStats> &stats, int idx, qint16 FoosDB::PlayerVsPlayerStats::*member) {
+        const auto addToRow = [&](
+                WTable *table1,
+                WTable *table2,
+                const QVector<FoosDB::PlayerVsPlayerStats> &stats,
+                int idx,
+                qint16 FoosDB::PlayerVsPlayerStats::*member) {
             if (idx >= stats.size())
                 return;
 
@@ -356,28 +374,34 @@ void PlayerWidget::updateOpponents()
 
             const int delta1 = pvp1.*member;
             const int delta2 = pvp2.*member;
-            if (delta1 <= 0 && delta2 >= 0)
-                return;
-
-            table->insertRow(table->rowCount())->setHeight("1.4em");;
-            const int n = table->rowCount() - 1;
-            table->rowAt(n)->addStyleClass(cssClass);
 
             if (delta1 > 0) {
-                table->elementAt(n, 0)->addWidget(make_unique<WText>(diff2str(delta1)))->setStyleClass("player_elo_plus");
-                table->elementAt(n, 1)->addWidget(make_unique<WText>(player2str(pvp1.player)));
+                table1->insertRow(table1->rowCount())->setHeight("1.4em");;
+                const int n1 = table1->rowCount() - 1;
+                WContainerWidget *container = table1->elementAt(n1, 0)->addWidget(make_unique<WContainerWidget>());
+                container->setStyleClass(cssClass);
+                container->setLayout(make_unique<WVBoxLayout>());
+                container->setContentAlignment(AlignmentFlag::Center);
+                addToLayout<WText>(container, diff2str(delta1))->setStyleClass("player_elo_plus");
+                addToLayout<WAnchor>(container, player2href(pvp1.player), player2str(pvp1.player));
             }
 
             if (delta2 < 0) {
-                table->elementAt(n, 2)->addWidget(make_unique<WText>(diff2str(delta2)))->setStyleClass("player_elo_minus");
-                table->elementAt(n, 3)->addWidget(make_unique<WText>(player2str(pvp2.player)));
+                table2->insertRow(table2->rowCount())->setHeight("1.4em");;
+                const int n2 = table2->rowCount() - 1;
+                WContainerWidget *container = table2->elementAt(n2, 1)->addWidget(make_unique<WContainerWidget>());
+                container->setStyleClass(cssClass);
+                container->setLayout(make_unique<WVBoxLayout>());
+                container->setContentAlignment(AlignmentFlag::Center);
+                addToLayout<WText>(container, diff2str(delta2))->setStyleClass("player_elo_minus");
+                addToLayout<WAnchor>(container, player2href(pvp2.player), player2str(pvp2.player));
             }
         };
 
-        addRow(m_opponents, opponents, i, opponentsDelta);
+        addToRow(m_opponentsWin, m_opponentsLose, opponents, i, opponentsDelta);
 
         if (!isSingle)
-            addRow(m_partners, partners, i, partnersDelta);
+            addToRow(m_partnersWin, m_partnersLose, partners, i, partnersDelta);
     }
 }
 
@@ -396,9 +420,9 @@ void PlayerWidget::updateMatchTable()
             (m_displayedDomain == FoosDB::EloDomain::Double) ? m_doubleCount :
                                                                (m_singleCount + m_doubleCount);
 
-    m_page = qMin(m_page, totalMatchCount / m_entriesPerPage);
-    const int start = m_page * m_entriesPerPage;
-    int count = qMin(totalMatchCount - start, m_entriesPerPage);
+    m_page = qMin(m_page, totalMatchCount / m_matchesPerPage);
+    const int start = m_page * m_matchesPerPage;
+    int count = qMin(totalMatchCount - start, m_matchesPerPage);
 
     const QVector<FoosDB::PlayerMatch> matches = m_db->getPlayerMatches(m_player, m_displayedDomain, start, count);
     count = qMin(count, matches.size());
@@ -446,10 +470,9 @@ void PlayerWidget::updateMatchTable()
         row.player22 = p22->addWidget(make_unique<WAnchor>());
         row.player22Elo = p22->addWidget(make_unique<WText>());
 
-        for (int i = 0; i < 4; ++i) {
-            const std::string c = (n % 2 == 1) ? "player_match_table_1" : "player_match_table_2";
+        const std::string c = (n % 2 == 1) ? "player_match_table_1" : "player_match_table_2";
+        for (int i = 0; i < 4; ++i)
             m_matchesTable->elementAt(n, i)->addStyleClass(c);
-        }
 
         m_rows << row;
     }
@@ -488,5 +511,5 @@ void PlayerWidget::updateMatchTable()
     }
 
     m_prevButton->setEnabled(m_page > 0);
-    m_nextButton->setEnabled((m_page + 1) * m_entriesPerPage < totalMatchCount);
+    m_nextButton->setEnabled((m_page + 1) * m_matchesPerPage < totalMatchCount);
 }

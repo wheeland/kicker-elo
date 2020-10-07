@@ -18,9 +18,9 @@
     <message id='player_matches'> <h3>Vergangene Matches</h3> </message>
     
     <message id='player_opponents'> <h3>Gegner</h3> </message>
-    <message id='player_opponents_loved'> Leichte Beute </message>
-    <message id='player_opponents_feared'> Angstgegner </message>
+    <message id='player_opponents_loved'> <h4>Leichte Beute</h4> </message>
+    <message id='player_opponents_feared'> <h4>Angstgegner</h4> </message>
     <message id='player_partners'> <h3>Doppelpartner</h3> </message>
-    <message id='player_partners_loved'> Dream Team </message>
-    <message id='player_partners_feared'> Pech beim DYP </message>
+    <message id='player_partners_loved'> <h4>Dream Team</h4> </message>
+    <message id='player_partners_feared'> <h4>Pech beim DYP</h4> </message>
 </messages>

@@ -59,6 +59,7 @@ private:
     Wt::WPushButton *m_eloSingleButton;
 
     Wt::WTable *m_opponents;
+    Wt::WTable *m_partners;
     Wt::WTable *m_matchesTable;
 
     Wt::WPushButton *m_prevButton;

@@ -126,3 +126,22 @@ body {
     font-weight: bold;
     color: #C00000
 }
+
+.player_pvp_col_1 { width: 10%; }
+.player_pvp_col_2 { width: 40%; }
+.player_pvp_col_3 { width: 10%; }
+.player_pvp_col_4 { width: 40%; }
+
+.player_pvp_1 {
+    background-color: #E8E8E8;
+    align-content: center;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.player_pvp_2 {
+    background-color: #D8D8D8;
+    align-content: center;
+    text-align: center;
+    vertical-align: middle;
+}

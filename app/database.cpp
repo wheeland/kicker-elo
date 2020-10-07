@@ -4,13 +4,6 @@
 #include <QSqlError>
 #include <QThread>
 
-struct Profiler {
-    Profiler(const QString &c) : caption(c), t0(QDateTime::currentMSecsSinceEpoch()) {}
-    ~Profiler() { qWarning() << caption << QDateTime::currentMSecsSinceEpoch() - t0; }
-    QString caption;
-    qint64 t0;
-};
-
 static QString genConnName()
 {
     static QAtomicInt counter = 0;
@@ -234,8 +227,6 @@ int Database::getPlayerMatchCount(const Player *player, EloDomain domain)
 
 QVector<PlayerVsPlayerStats> Database::getPlayerVsPlayerStats(const Player *player)
 {
-    Profiler prof("pvp");
-
     QSqlDatabase *db = getOrCreateDb();
     QVector<PlayerVsPlayerStats> ret;
 
@@ -282,7 +273,6 @@ QVector<PlayerVsPlayerStats> Database::getPlayerVsPlayerStats(const Player *play
 
 QVector<Player::EloProgression> Database::getPlayerProgression(const Player *player)
 {
-    Profiler prof("pvp");
     QVector<Player::EloProgression> ret;
     QSqlDatabase *db = getOrCreateDb();
 
@@ -329,8 +319,6 @@ QVector<Player::EloProgression> Database::getPlayerProgression(const Player *pla
 
 QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, EloDomain domain, int start, int count)
 {
-    Profiler prof("matches");
-
     QSqlDatabase *db = getOrCreateDb();
     QVector<PlayerMatch> ret;
 

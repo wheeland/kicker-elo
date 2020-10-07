@@ -361,9 +361,10 @@ void Database::recompute()
         const float newRating = players[pid].abs();
         domain.add(pmid, oldRating, newRating - oldRating);
 
-        playerVsPlayer[pid][other.first].singleStats.checkin(res);
-        if (separate)
+        if (separate) {
             playerVsPlayer[pid][other.first].singleDiff += newRating - oldRating;
+            playerVsPlayer[pid][other.first].singleStats.checkin(res);
+        }
         else
             playerVsPlayer[pid][other.first].combinedDiff += newRating - oldRating;
     };
@@ -377,14 +378,15 @@ void Database::recompute()
         const float newRating = players[pid].abs();
         domain.add(pmid, oldRating, newRating - oldRating);
 
-        playerVsPlayer[pid][partner.first].partnerStats.checkin(res);
-        playerVsPlayer[pid][o1.first].doubleStats.checkin(res);
-        playerVsPlayer[pid][o2.first].doubleStats.checkin(res);
-
         if (separate) {
             playerVsPlayer[pid][partner.first].partnerDoubleDiff += newRating - oldRating;
             playerVsPlayer[pid][o1.first].doubleDiff += newRating - oldRating;
             playerVsPlayer[pid][o2.first].doubleDiff += newRating - oldRating;
+
+            playerVsPlayer[pid][partner.first].partnerStats.checkin(res);
+
+            playerVsPlayer[pid][o1.first].doubleStats.checkin(res);
+            playerVsPlayer[pid][o2.first].doubleStats.checkin(res);
         } else {
             playerVsPlayer[pid][partner.first].partnerCombinedDiff += newRating - oldRating;
             playerVsPlayer[pid][o1.first].combinedDiff += newRating - oldRating;

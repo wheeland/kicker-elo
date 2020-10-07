@@ -92,24 +92,12 @@ body {
 
 .player_match_table {
     cellpadding: 0;
-    border: 2px solid black;
 }
 
-.player_match_col_1 {
-    width: 22%;
-}
-
-.player_match_col_2 {
-    width: 28%;
-}
-
-.player_match_col_3 {
-    width: 10%;
-}
-
-.player_match_col_4 {
-    width: 28%;
-}
+.player_match_col_1 { width: 22%; }
+.player_match_col_2 { width: 28%; }
+.player_match_col_3 { width: 10%; }
+.player_match_col_4 { width: 28%; }
 
 .player_match_table_header {
     align-content: center;

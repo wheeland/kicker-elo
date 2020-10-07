@@ -51,7 +51,17 @@ PlayerWidget::PlayerWidget(int playerId)
     m_layout = new WVBoxLayout();
     setLayout(std::unique_ptr<WVBoxLayout>(m_layout));
 
-    m_title = addToLayout<WText>(this);
+    WContainerWidget *headerGroup = addToLayout<WContainerWidget>(this);
+    headerGroup->setWidth(WLength(100, WLength::Unit::Percentage));
+
+    WPushButton *backButton = headerGroup->addWidget(make_unique<WPushButton>("<<"));
+    backButton->setFloatSide(Side::Left);
+    backButton->setVerticalAlignment(AlignmentFlag::Middle);
+    backButton->decorationStyle().font().setSize("150%");
+    backButton->setEnabled(true);
+    backButton->setLink(Wt::WLink(Wt::LinkType::InternalPath, "/"));
+
+    m_title = headerGroup->addWidget(make_unique<WText>());
     m_title->setTextAlignment(AlignmentFlag::Center);
 
     //

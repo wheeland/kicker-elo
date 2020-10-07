@@ -15,7 +15,12 @@
     
     <message id='player_peak'> (Höchstwert: <b>{1}</b>) </message>
     <message id='player_select'> Anzeigen </message>
+    <message id='player_matches'> <h3>Vergangene Matches</h3> </message>
     
-    leichte beute!
-    lieblingsgegner
+    <message id='player_opponents'> <h3>Gegner</h3> </message>
+    <message id='player_opponents_loved'> Leichte Beute </message>
+    <message id='player_opponents_feared'> Angstgegner </message>
+    <message id='player_partners'> <h3>Doppelpartner</h3> </message>
+    <message id='player_partners_loved'> Dream Team </message>
+    <message id='player_partners_feared'> Pech beim DYP </message>
 </messages>

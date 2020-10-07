@@ -6,6 +6,9 @@
 #include <QSqlQuery>
 #include <QDebug>
 
+const float kTournament = 30.f;
+const float kLeague = 20.f;
+
 Database::Database(const QString &sqlitePath)
     : m_db(QSqlDatabase::addDatabase("QSQLITE"))
 {
@@ -400,7 +403,7 @@ void Database::recompute()
         const float result = (match.score1 > match.score2) ? 0.0f :
                              (match.score1 < match.score2) ? 1.0f : 0.5f;
         const bool isTournament = (m_competitions[match.competition].type == CompetitionType::Tournament);
-        const float k = isTournament ? 48.f : 24.f;
+        const float k = isTournament ? kTournament : kLeague;
 
         if (match.type == MatchType::Single) {
             const int pm1id = addPlayedMatch(match.p1, match.id);

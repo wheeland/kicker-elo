@@ -9,8 +9,10 @@
 #include "rankingwidget.hpp"
 #include "playerwidget.hpp"
 #include "database.hpp"
+#include "util.hpp"
 
 #include <QFile>
+#include <QDebug>
 
 using std::make_unique;
 using namespace Wt;
@@ -66,6 +68,8 @@ private:
 EloApp::EloApp(const WEnvironment& env)
     : WApplication(env)
 {
+    CheapProfiler prof("Started session");
+
     setTitle("TFVB Elo Rankings");
 
     WContainerWidget *rootBg = root()->addWidget(make_unique<WContainerWidget>());
@@ -122,7 +126,7 @@ void EloApp::showPlayer(int id)
 int main(int argc, char **argv)
 {
     const QByteArray logPath = qgetenv("LOGPATH");
-    s_logFile.setFileName(logPath.isEmpty() ? QString("/var/elo/elo.log") : QString::fromUtf8(logPath));
+    s_logFile.setFileName(logPath.isEmpty() ? QString("lo.log") : QString::fromUtf8(logPath));
     s_logFile.open(QFile::Append);
 
     qInstallMessageHandler(messageHandler);
@@ -131,6 +135,8 @@ int main(int argc, char **argv)
     if (dbPath.isEmpty()) {
         qFatal("Need to specify SQLITEDB environment variable");
     }
+
+    qDebug() << "Started, opening database" << dbPath;
 
     FoosDB::Database::create(std::string(dbPath.constData()));
 

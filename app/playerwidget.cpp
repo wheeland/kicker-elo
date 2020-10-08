@@ -1,4 +1,5 @@
 #include "playerwidget.hpp"
+#include "util.hpp"
 
 #include <Wt/WHBoxLayout.h>
 #include <Wt/WVBoxLayout.h>
@@ -46,6 +47,8 @@ static WLink player2href(const FoosDB::Player *p)
 PlayerWidget::PlayerWidget(int playerId)
     : m_db(FoosDB::Database::instance())
 {
+    CheapProfiler prof("Creating PlayerWidget");
+
     setContentAlignment(AlignmentFlag::Center);
 
     m_layout = new WVBoxLayout();
@@ -212,6 +215,8 @@ PlayerWidget::~PlayerWidget()
 
 void PlayerWidget::setPlayerId(int id)
 {
+    CheapProfiler prof("PlayerWidget::SetPlayerId()");
+
     m_playerId = id;
     m_player = m_db->getPlayer(id);
     m_page = 0;
@@ -426,6 +431,8 @@ void PlayerWidget::updateOpponents()
 
 void PlayerWidget::updateMatchTable()
 {
+    CheapProfiler prof("PlayerWidget::UpdateMatchTable()");
+
     if (!m_player) {
         while (m_matchesTable->rowCount() > 0)
             m_matchesTable->removeRow(m_matchesTable->rowCount() - 1);

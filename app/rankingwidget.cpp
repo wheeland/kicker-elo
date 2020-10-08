@@ -1,4 +1,5 @@
 #include "rankingwidget.hpp"
+#include "util.hpp"
 
 #include <Wt/WHBoxLayout.h>
 #include <Wt/WAnchor.h>
@@ -23,6 +24,8 @@ static inline T *addToLayout(WLayout *layout, Args&&... args)
 RankingWidget::RankingWidget()
     : m_db(FoosDB::Database::instance())
 {
+    CheapProfiler prof("Creating RankingWidget");
+
     setContentAlignment(AlignmentFlag::Center);
 
     m_layout = new WVBoxLayout();
@@ -123,6 +126,8 @@ void RankingWidget::updateSearch()
 
 void RankingWidget::update()
 {
+    CheapProfiler prof("Updating RankingWidget");
+
     const FoosDB::EloDomain domain = (m_sortPolicy == Games) ? FoosDB::EloDomain::Combined
                                                              : (FoosDB::EloDomain) m_sortPolicy;
     QVector<const FoosDB::Player*> players = m_db->getPlayersByRanking(domain);

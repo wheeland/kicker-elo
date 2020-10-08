@@ -24,7 +24,9 @@ static const char *msgTypeStr(QtMsgType type)
     case QtWarningMsg: return "[WARNING]";
     case QtCriticalMsg: return "[CRITICAL]";
     case QtFatalMsg: return "[FATAL]";
+#if QT_VERSION > QT_VERSION_CHECK(5, 5, 0)
     case QtInfoMsg: return "[INFO]";
+#endif
     default: return "[NONE]";
     }
 }

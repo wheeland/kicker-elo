@@ -368,7 +368,7 @@ void PlayerWidget::updateOpponents()
     m_partnersWinGroup->setHidden(isSingle);
     m_partnersLoseGroup->setHidden(isSingle);
 
-    for (int i = 0 ; i < 10; ++i) {
+    for (int i = 0 ; i < 4; ++i) {
         const std::string cssClass = (i % 2 == 0) ? "player_pvp_1" : "player_pvp_2";
 
         const auto addToRow = [&](

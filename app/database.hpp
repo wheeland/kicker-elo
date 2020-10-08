@@ -55,7 +55,7 @@ struct Player
         qint16 eloCombined = 0;
         EloProgression() = default;
         EloProgression(const EloProgression&) = default;
-        EloProgression(const QDateTime &date, int s, int d, int c);
+        EloProgression(qint16 yy, quint16 mm, quint16 dd, int s, int d, int c);
     };
     QVector<EloProgression> progression;
 };

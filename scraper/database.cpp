@@ -41,7 +41,10 @@ void Database::createTables()
         tfvbId integer NOT NULL, \
         type integer, \
         name text, \
-        date integer, \
+        year integer, \
+        month integer, \
+        day integer, \
+        unixTimestamp, \
         primary key (id))"
     );
     execQuery("CREATE TABLE IF NOT EXISTS played_matches ( \
@@ -130,7 +133,7 @@ void Database::createQueries()
     if (!m_insertPlayerQuery.prepare("INSERT INTO players (id, firstName, lastName) VALUES (?, ?, ?)")) {
         qWarning() << "Failed to prepare query";
     }
-    if (!m_insertCompetitionQuery.prepare("INSERT INTO competitions (id, tfvbId, type, name, date) VALUES (?, ?, ?, ?, ?)")) {
+    if (!m_insertCompetitionQuery.prepare("INSERT INTO competitions (id, tfvbId, type, name, year, month, day, unixTimestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
         qWarning() << "Failed to prepare query";
     }
     if (!m_insertMatchQuery.prepare("INSERT INTO matches (id, competition_id, position, type, score1, score2, p1, p2, p11, p22) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
@@ -149,14 +152,17 @@ void Database::readData()
         m_players[id] = Player{id, firstName, lastName};
     }
 
-    QSqlQuery competitionQuery("SELECT id, tfvbId, type, name, date FROM competitions");
+    QSqlQuery competitionQuery("SELECT id, tfvbId, type, name, year, month, day FROM competitions");
     checkQueryStatus(competitionQuery);
     while (competitionQuery.next()) {
         const int id = competitionQuery.value(0).toInt();
         const int tfvbId = competitionQuery.value(1).toInt();
         const int type = competitionQuery.value(2).toInt();
         const QString name = competitionQuery.value(3).toString();
-        const QDateTime dt = QDateTime::fromSecsSinceEpoch(competitionQuery.value(4).toLongLong());
+        const int year = competitionQuery.value(4).toInt();
+        const int month = competitionQuery.value(5).toInt();
+        const int day = competitionQuery.value(6).toInt();
+        const QDateTime dt = QDateTime(QDate(year, month, day));
         m_competitions[id] = Competition{id, tfvbId, (CompetitionType) type, name, dt};
     }
 
@@ -192,7 +198,10 @@ int Database::addCompetition(int tfvbId, CompetitionType type, const QString &na
     m_insertCompetitionQuery.bindValue(1, tfvbId);
     m_insertCompetitionQuery.bindValue(2, (int) type);
     m_insertCompetitionQuery.bindValue(3, name);
-    m_insertCompetitionQuery.bindValue(4, dt.toSecsSinceEpoch());
+    m_insertCompetitionQuery.bindValue(4, dt.date().year());
+    m_insertCompetitionQuery.bindValue(5, dt.date().month());
+    m_insertCompetitionQuery.bindValue(6, dt.date().day());
+    m_insertCompetitionQuery.bindValue(7, dt.toSecsSinceEpoch());
     m_insertCompetitionQuery.exec();
     checkQueryStatus(m_insertCompetitionQuery);
 

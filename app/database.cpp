@@ -12,12 +12,11 @@ static QString genConnName()
 
 namespace FoosDB {
 
-Player::EloProgression::EloProgression(const QDateTime &date, int s, int d, int c)
+Player::EloProgression::EloProgression(qint16 yy, quint16 mm, quint16 dd, int s, int d, int c)
 {
-    const QDate dt = date.date();
-    day = dt.day();
-    month = dt.month();
-    year = dt.year();
+    day = dd;
+    month = mm;
+    year = yy;
     eloSingle = s;
     eloDouble = d;
     eloCombined = c;
@@ -278,7 +277,7 @@ QVector<Player::EloProgression> Database::getPlayerProgression(const Player *pla
 
     if (player) {
         const QString ratingsQueryString(
-            "SELECT m.type, c.date, ec.rating, es.rating "
+            "SELECT m.type, c.year, c.month, c.day, ec.rating, es.rating "
             "FROM played_matches AS pm "
             "INNER JOIN matches AS m "
             "   ON pm.match_id = m.id "
@@ -294,13 +293,14 @@ QVector<Player::EloProgression> Database::getPlayerProgression(const Player *pla
 
         while (ratingsQuery.next()) {
             const MatchType matchType = (MatchType) ratingsQuery.value(0).toInt();
-            const QDateTime date = QDateTime::fromSecsSinceEpoch(ratingsQuery.value(1).toLongLong());
-            const int eloCombined = ratingsQuery.value(2).toInt();
-            const int eloSeparate = ratingsQuery.value(3).toInt();
-
+            const int year = ratingsQuery.value(1).toInt();
+            const int month = ratingsQuery.value(2).toInt();
+            const int day = ratingsQuery.value(3).toInt();
+            const int eloCombined = ratingsQuery.value(4).toInt();
+            const int eloSeparate = ratingsQuery.value(5).toInt();
 
             if (ret.isEmpty()) {
-                ret << Player::EloProgression(date, eloSeparate, eloSeparate, eloCombined);
+                ret << Player::EloProgression(year, month, day, eloSeparate, eloSeparate, eloCombined);
             }
             else {
                 int s = ret.last().eloSingle;
@@ -309,10 +309,18 @@ QVector<Player::EloProgression> Database::getPlayerProgression(const Player *pla
                     s = eloSeparate;
                 else
                     d = eloSeparate;
-                ret << Player::EloProgression(date, s, d, eloCombined);
+                ret << Player::EloProgression(year, month, day, s, d, eloCombined);
             }
         }
     }
+
+    std::sort(ret.begin(), ret.end(), [](const Player::EloProgression &a, const Player::EloProgression &b) {
+        if (a.year != b.year)
+            return a.year < b.year;
+        if (a.month != b.month)
+            return a.month < b.month;
+        return a.day < b.day;
+    });
 
     return ret;
 }
@@ -338,7 +346,6 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, EloDomain 
             (start > 0 || count > 0)
             ? QString("LIMIT %1 OFFSET %2 ").arg(count).arg(start)
             : QString();
-
 
     //
     // Read all ELO start rankings for all participants in all matches that the player has played
@@ -374,7 +381,7 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, EloDomain 
     QString queryString =
         "SELECT pm.match_id, "
         "       m.type, m.score1, m.score2, m.p1, m.p2, m.p11, m.p22, "
-        "       c.name, c.date, c.type, "
+        "       c.name, c.year, c.month, c.day, c.type, "
         "       es.change, ec.change "
         "FROM played_matches AS pm "
         "INNER JOIN matches AS m ON pm.match_id = m.id "
@@ -395,10 +402,12 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, EloDomain 
         int p11 = query.value(6).toInt();
         int p22 = query.value(7).toInt();
         const QString competiton = query.value(8).toString();
-        const QDateTime date = QDateTime::fromSecsSinceEpoch(query.value(9).toLongLong());
-        const CompetitionType compType = (CompetitionType) query.value(10).toInt();
-        const int esc = query.value(11).toInt();
-        const int ecc = query.value(12).toInt();
+        const int year = query.value(9).toInt();
+        const int month = query.value(10).toInt();
+        const int day = query.value(11).toInt();
+        const CompetitionType compType = (CompetitionType) query.value(12).toInt();
+        const int esc = query.value(13).toInt();
+        const int ecc = query.value(14).toInt();
 
         if (p2 == player->id || p22 == player->id) {
             qSwap(p1, p2);
@@ -409,7 +418,7 @@ QVector<PlayerMatch> Database::getPlayerMatches(const Player *player, EloDomain 
             qSwap(p1, p11);
 
         PlayerMatch match;
-        match.date = date;
+        match.date = QDateTime(QDate(year, month, day));
         match.competitionName = competiton;
         match.competitionType = compType;
         match.matchType = matchType;

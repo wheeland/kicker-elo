@@ -26,7 +26,6 @@ add_executable(${TARGET}
     playerwidget.hpp
     database.cpp
     database.hpp
-    util.hpp
 )
 
 target_link_libraries(${TARGET} wt wthttp Qt5::Core Qt5::Sql)

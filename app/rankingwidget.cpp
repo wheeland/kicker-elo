@@ -1,17 +1,15 @@
 #include "rankingwidget.hpp"
-#include "util.hpp"
 
 #include <Wt/WHBoxLayout.h>
 #include <Wt/WAnchor.h>
 #include <Wt/WCssDecorationStyle.h>
 
 using namespace Wt;
-using namespace Util;
 using std::make_unique;
 
 static Wt::WLink createPlayerLink(int id)
 {
-    return Wt::WLink(LinkType::InternalPath, "/player/" + num2str(id));
+    return Wt::WLink(LinkType::InternalPath, "/player/" + std::to_string(id));
 }
 
 template<typename T, typename... Args>
@@ -191,13 +189,13 @@ void RankingWidget::update()
         const FoosDB::Player *p = board[start + i].first;
         const std::string name = (p->firstName + " " + p->lastName).toStdString();
 
-        m_rows[i].rank->setText(num2str(board[start + i].second + 1));
+        m_rows[i].rank->setText(std::to_string(board[start + i].second + 1));
         m_rows[i].player->setLink(createPlayerLink(p->id));
         m_rows[i].player->setText(name);
-        m_rows[i].eloCombined->setText(num2str((int) p->eloCombined));
-        m_rows[i].eloSingle->setText(num2str((int) p->eloSingle));
-        m_rows[i].eloDouble->setText(num2str((int) p->eloDouble));
-        m_rows[i].matchCount->setText(num2str(p->matchCount));
+        m_rows[i].eloCombined->setText(std::to_string((int) p->eloCombined));
+        m_rows[i].eloSingle->setText(std::to_string((int) p->eloSingle));
+        m_rows[i].eloDouble->setText(std::to_string((int) p->eloDouble));
+        m_rows[i].matchCount->setText(std::to_string(p->matchCount));
     }
 
     m_comboButton->decorationStyle().font().setWeight((m_sortPolicy == Combined) ? FontWeight::Bold : FontWeight::Normal);

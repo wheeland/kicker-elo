@@ -1,5 +1,4 @@
 #include "playerwidget.hpp"
-#include "util.hpp"
 
 #include <Wt/WHBoxLayout.h>
 #include <Wt/WVBoxLayout.h>
@@ -11,7 +10,6 @@
 #include <Wt/WCssDecorationStyle.h>
 
 using namespace Wt;
-using namespace Util;
 using std::make_unique;
 
 template<typename T, typename... Args>
@@ -25,12 +23,14 @@ static inline T *addToLayout(WContainerWidget *widget, Args&&... args)
 static std::string date2str(const QDateTime &dt)
 {
     const QDate date = dt.date();
-    return QString::asprintf("%02d.%02d.%d", date.day(), date.month(), date.year()).toStdString();
+    char buf[128];
+    snprintf(buf, sizeof(buf), "%02d.%02d.%d", date.day(), date.month(), date.year());
+    return std::string(buf);
 }
 
 static std::string diff2str(int diff)
 {
-    return (diff >= 0) ? ("+" + num2str(diff)) : num2str(diff);
+    return (diff >= 0) ? ("+" + std::to_string(diff)) : std::to_string(diff);
 }
 
 static std::string player2str(const FoosDB::Player *player)
@@ -40,7 +40,7 @@ static std::string player2str(const FoosDB::Player *player)
 
 static WLink player2href(const FoosDB::Player *p)
 {
-    return p ? WLink(LinkType::InternalPath, "/player/" + num2str(p->id)) : WLink();
+    return p ? WLink(LinkType::InternalPath, "/player/" + std::to_string(p->id)) : WLink();
 };
 
 PlayerWidget::PlayerWidget(int playerId)
@@ -242,12 +242,12 @@ void PlayerWidget::setPlayerId(int id)
     // Update ELO/title texts
     //
     m_title->setText("<h1>" + player2str(m_player) + "</h1>");
-    m_eloCombined->setText("<b>" + num2str(ec) + "</b>");
-    m_eloDouble->setText("<b>" + num2str(ed) + "</b>");
-    m_eloSingle->setText("<b>" + num2str(es) + "</b>");
-    m_eloCombinedPeak->setText(tr("player_peak").arg(num2str(m_peakCombined)));
-    m_eloDoublePeak->setText(tr("player_peak").arg(num2str(m_peakDouble)));
-    m_eloSinglePeak->setText(tr("player_peak").arg(num2str(m_peakSingle)));
+    m_eloCombined->setText("<b>" + std::to_string(ec) + "</b>");
+    m_eloDouble->setText("<b>" + std::to_string(ed) + "</b>");
+    m_eloSingle->setText("<b>" + std::to_string(es) + "</b>");
+    m_eloCombinedPeak->setText(tr("player_peak").arg(std::to_string(m_peakCombined)));
+    m_eloDoublePeak->setText(tr("player_peak").arg(std::to_string(m_peakDouble)));
+    m_eloSinglePeak->setText(tr("player_peak").arg(std::to_string(m_peakSingle)));
 
     updateChart();
     updateOpponents();
@@ -387,7 +387,7 @@ void PlayerWidget::updateOpponents()
             const FoosDB::PlayerVsPlayerStats::Results res2 = (pvp2.*results)();
 
             const auto resultStr = [&](const FoosDB::PlayerVsPlayerStats::Results &res) {
-                return "  (" + num2str(res.wins) + " : " + num2str(res.draws) + " : " + num2str(res.losses) + ")";
+                return "  (" + std::to_string(res.wins) + " : " + std::to_string(res.draws) + " : " + std::to_string(res.losses) + ")";
             };
 
             if (res1.delta > 0) {
@@ -507,7 +507,7 @@ void PlayerWidget::updateMatchTable()
         m_rows[i].competition->setTextFormat(TextFormat::UnsafeXHTML);
 
         if (m.myScore > 1 || m.opponentScore > 1)
-            m_rows[i].score->setText(num2str(m.myScore) + ":" + num2str(m.opponentScore));
+            m_rows[i].score->setText(std::to_string(m.myScore) + ":" + std::to_string(m.opponentScore));
         else
             m_rows[i].score->setText((m.myScore > 0) ? tr("win") : tr("loss"));
         const int diff = isCombined ? m.eloCombinedDiff : m.eloSeparateDiff;
@@ -517,7 +517,7 @@ void PlayerWidget::updateMatchTable()
         const auto setPlayerDetails = [&](WAnchor *a, WText *t, const FoosDB::PlayerMatch::Participant &p) {
             a->setText(player2str(p.player));
             a->setLink(player2href(p.player));
-            t->setText(p.player ? " (" + num2str(isCombined ? p.eloCombined : p.eloSeparate) + ")"
+            t->setText(p.player ? " (" + std::to_string(isCombined ? p.eloCombined : p.eloSeparate) + ")"
                                 : "");
         };
 

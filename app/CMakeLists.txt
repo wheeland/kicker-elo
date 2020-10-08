@@ -30,7 +30,7 @@ add_executable(${TARGET}
     database.hpp
 )
 
-target_link_libraries(${TARGET} wt wthttp Qt5::Core Qt5::Sql)
+target_link_libraries(${TARGET} wt Qt5::Core Qt5::Sql)
 if (BUILD_FCGI)
     target_link_libraries(${TARGET} wtfcgi)
 else (BUILD_FCGI)

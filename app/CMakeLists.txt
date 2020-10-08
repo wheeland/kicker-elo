@@ -8,6 +8,7 @@ set(CMAKE_AUTOUIC ON)
 
 set(WT_DIRECTORY "/usr" CACHE STRING "Path to the Wt deployment directory")
 SET(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Boost REQUIRED)
 find_package(Qt5 COMPONENTS Core Sql REQUIRED)

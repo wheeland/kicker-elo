@@ -63,11 +63,11 @@ struct Player
 struct PlayerVsPlayerStats
 {
     const Player *player;
-    qint16 singleWins = 0, singleDraws = 0, singleLosses = 0;
-    qint16 doubleWins = 0, doubleDraws = 0, doubleLosses = 0;
-    qint16 partnerWins = 0, partnerDraws = 0, partnerLosses = 0;
-    qint16 singleDiff = 0, doubleDiff = 0, combinedDiff = 0;
-    qint16 partnerCombinedDiff = 0, partnerDoubleDiff = 0;
+    qint16 singleWins, singleDraws, singleLosses;
+    qint16 doubleWins, doubleDraws, doubleLosses;
+    qint16 partnerWins, partnerDraws, partnerLosses;
+    qint16 singleDiff, doubleDiff, combinedDiff;
+    qint16 partnerCombinedDiff, partnerDoubleDiff;
 
     struct Results { int delta, wins, draws, losses; };
     Results singleResults() const { return Results{singleDiff, singleWins, singleDraws, singleLosses}; }

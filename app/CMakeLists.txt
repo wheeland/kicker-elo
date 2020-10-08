@@ -25,7 +25,6 @@ add_executable(${TARGET}
     playerwidget.hpp
     database.cpp
     database.hpp
-    database_orm.hpp
     util.hpp
 )
 

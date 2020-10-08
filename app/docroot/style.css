@@ -104,17 +104,26 @@ body {
 }
 
 .player_match_table_1 {
-    background-color: #F0F0F0;
+    background-color: #E8E8E8;
     align-content: center;
     text-align: center;
     vertical-align: middle;
 }
 
 .player_match_table_2 {
-    background-color: #E0E0E0;
+    background-color: #D8D8D8;
     align-content: center;
     text-align: center;
     vertical-align: middle;
+}
+
+.player_match_date {
+    font-style: italic;
+    font-size: 80%;
+}
+
+.player_match_competition {
+    font-size: 65%;
 }
 
 .player_elo_plus {
@@ -131,6 +140,11 @@ body {
 .player_pvp_col_2 { width: 40%; }
 .player_pvp_col_3 { width: 10%; }
 .player_pvp_col_4 { width: 40%; }
+
+.player_pvp_stats {
+    font-style: italic;
+    font-size: 70%;
+}
 
 .player_pvp_1 {
     background-color: #E8E8E8;

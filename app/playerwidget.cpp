@@ -334,35 +334,36 @@ void PlayerWidget::updateOpponents()
     if (!m_player)
         return;
 
-    const auto sortPvp = [](QVector<FoosDB::PlayerVsPlayerStats> &list, qint16 FoosDB::PlayerVsPlayerStats::*member) {
+    using ResultFunction = FoosDB::PlayerVsPlayerStats::Results (FoosDB::PlayerVsPlayerStats::*)() const;
+
+    const auto sortPvp = [](QVector<FoosDB::PlayerVsPlayerStats> &list, ResultFunction result) {
         std::sort(list.begin(), list.end(), [=](const FoosDB::PlayerVsPlayerStats &a, const FoosDB::PlayerVsPlayerStats &b) {
-            return a.*member > b.*member;
+            return (a.*result)().delta > (b.*result)().delta;
         });
     };
 
     const bool isSingle = (m_displayedDomain == FoosDB::EloDomain::Single);
     QVector<FoosDB::PlayerVsPlayerStats> opponents = m_pvpStats;
     QVector<FoosDB::PlayerVsPlayerStats> partners = m_pvpStats;
-
-    qint16 FoosDB::PlayerVsPlayerStats::*opponentsDelta;
-    qint16 FoosDB::PlayerVsPlayerStats::*partnersDelta;
+    ResultFunction opponentResults;
+    ResultFunction partnerResults;
 
     if (m_displayedDomain == FoosDB::EloDomain::Single) {
-        opponentsDelta = &FoosDB::PlayerVsPlayerStats::singleDiff;
-        partnersDelta = &FoosDB::PlayerVsPlayerStats::singleDiff;
+        opponentResults = &FoosDB::PlayerVsPlayerStats::singleResults;
+        partnerResults = &FoosDB::PlayerVsPlayerStats::singleResults;
     }
     else if (m_displayedDomain == FoosDB::EloDomain::Double) {
-        opponentsDelta = &FoosDB::PlayerVsPlayerStats::doubleDiff;
-        partnersDelta = &FoosDB::PlayerVsPlayerStats::partnerDoubleDiff;
+        opponentResults = &FoosDB::PlayerVsPlayerStats::doubleResults;
+        partnerResults = &FoosDB::PlayerVsPlayerStats::partnerDoubleResults;
     }
     else {
-        opponentsDelta = &FoosDB::PlayerVsPlayerStats::combinedDiff;
-        partnersDelta = &FoosDB::PlayerVsPlayerStats::partnerCombinedDiff;
+        opponentResults = &FoosDB::PlayerVsPlayerStats::combinedResults;
+        partnerResults = &FoosDB::PlayerVsPlayerStats::partnerCombinedResults;
     }
 
-    sortPvp(opponents, opponentsDelta);
+    sortPvp(opponents, opponentResults);
     if (!isSingle)
-        sortPvp(partners, partnersDelta);
+        sortPvp(partners, partnerResults);
 
     m_partnersWinGroup->setHidden(isSingle);
     m_partnersLoseGroup->setHidden(isSingle);
@@ -375,43 +376,51 @@ void PlayerWidget::updateOpponents()
                 WTable *table2,
                 const QVector<FoosDB::PlayerVsPlayerStats> &stats,
                 int idx,
-                qint16 FoosDB::PlayerVsPlayerStats::*member) {
+                ResultFunction results) {
             if (idx >= stats.size())
                 return;
 
             const FoosDB::PlayerVsPlayerStats pvp1 = stats.value(idx);
             const FoosDB::PlayerVsPlayerStats pvp2 = stats.value(stats.size() - idx - 1);
 
-            const int delta1 = pvp1.*member;
-            const int delta2 = pvp2.*member;
+            const FoosDB::PlayerVsPlayerStats::Results res1 = (pvp1.*results)();
+            const FoosDB::PlayerVsPlayerStats::Results res2 = (pvp2.*results)();
 
-            if (delta1 > 0) {
+            const auto resultStr = [&](const FoosDB::PlayerVsPlayerStats::Results &res) {
+                return "  (" + num2str(res.wins) + " : " + num2str(res.draws) + " : " + num2str(res.losses) + ")";
+            };
+
+            if (res1.delta > 0) {
                 table1->insertRow(table1->rowCount())->setHeight("1.4em");;
                 const int n1 = table1->rowCount() - 1;
                 WContainerWidget *container = table1->elementAt(n1, 0)->addWidget(make_unique<WContainerWidget>());
                 container->setStyleClass(cssClass);
                 container->setLayout(make_unique<WVBoxLayout>());
                 container->setContentAlignment(AlignmentFlag::Center);
-                addToLayout<WText>(container, diff2str(delta1))->setStyleClass("player_elo_plus");
+                WContainerWidget *result = addToLayout<WContainerWidget>(container);
+                result->addWidget(make_unique<WText>(diff2str(res1.delta)))->setStyleClass("player_elo_plus");
+                result->addWidget(make_unique<WText>(resultStr(res1)))->setStyleClass("player_pvp_stats");
                 addToLayout<WAnchor>(container, player2href(pvp1.player), player2str(pvp1.player));
             }
 
-            if (delta2 < 0) {
+            if (res2.delta < 0) {
                 table2->insertRow(table2->rowCount())->setHeight("1.4em");;
                 const int n2 = table2->rowCount() - 1;
                 WContainerWidget *container = table2->elementAt(n2, 1)->addWidget(make_unique<WContainerWidget>());
                 container->setStyleClass(cssClass);
                 container->setLayout(make_unique<WVBoxLayout>());
                 container->setContentAlignment(AlignmentFlag::Center);
-                addToLayout<WText>(container, diff2str(delta2))->setStyleClass("player_elo_minus");
+                WContainerWidget *result = addToLayout<WContainerWidget>(container);
+                result->addWidget(make_unique<WText>(diff2str(res2.delta)))->setStyleClass("player_elo_minus");
+                result->addWidget(make_unique<WText>(resultStr(res2)))->setStyleClass("player_pvp_stats");
                 addToLayout<WAnchor>(container, player2href(pvp2.player), player2str(pvp2.player));
             }
         };
 
-        addToRow(m_opponentsWin, m_opponentsLose, opponents, i, opponentsDelta);
+        addToRow(m_opponentsWin, m_opponentsLose, opponents, i, opponentResults);
 
         if (!isSingle)
-            addToRow(m_partnersWin, m_partnersLose, partners, i, partnersDelta);
+            addToRow(m_partnersWin, m_partnersLose, partners, i, partnerResults);
     }
 }
 
@@ -450,14 +459,12 @@ void PlayerWidget::updateMatchTable()
         };
 
         WContainerWidget *competition = m_matchesTable->elementAt(n, 0)->addWidget(make_unique<WContainerWidget>());
-        competition->addStyleClass("player_match_competition");
         competition->setPadding("0px");
 
         row.date = competition->addWidget(make_unique<WText>());
-        row.date->decorationStyle().font().setSize(FontSize::Small);
-        row.date->decorationStyle().font().setStyle(FontStyle::Italic);
+        row.date->setStyleClass("player_match_date");
         row.competition = competition->addWidget(make_unique<WText>());
-        row.competition->decorationStyle().font().setSize(FontSize::XSmall);
+        row.competition->setStyleClass("player_match_competition");
 
         WContainerWidget *player1Widget = addVContainer(1);
         WContainerWidget *p1 = addToLayout<WContainerWidget>(player1Widget);

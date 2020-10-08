@@ -68,6 +68,13 @@ struct PlayerVsPlayerStats
     qint16 partnerWins = 0, partnerDraws = 0, partnerLosses = 0;
     qint16 singleDiff = 0, doubleDiff = 0, combinedDiff = 0;
     qint16 partnerCombinedDiff = 0, partnerDoubleDiff = 0;
+
+    struct Results { int delta, wins, draws, losses; };
+    Results singleResults() const { return Results{singleDiff, singleWins, singleDraws, singleLosses}; }
+    Results doubleResults() const { return Results{doubleDiff, doubleWins, doubleDraws, doubleLosses}; }
+    Results combinedResults() const { return Results{combinedDiff, singleWins+doubleWins, singleDraws+doubleDraws, singleLosses+doubleLosses}; }
+    Results partnerDoubleResults() const { return Results{partnerDoubleDiff, partnerWins, partnerDraws, partnerLosses}; }
+    Results partnerCombinedResults() const { return Results{partnerCombinedDiff, partnerWins, partnerDraws, partnerLosses}; }
 };
 
 struct PlayerMatch

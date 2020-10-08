@@ -58,6 +58,8 @@ EloApp::EloApp(const WEnvironment& env)
 
     useStyleSheet("style.css");
     messageResourceBundle().use("elo");
+
+    onInternalPathChanged(internalPath());
 }
 
 void EloApp::onInternalPathChanged(const std::string &path)

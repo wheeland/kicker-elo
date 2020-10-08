@@ -88,7 +88,8 @@ void EloApp::showPlayer(int id)
 
 int main(int argc, char **argv)
 {
-    FoosDB::Database::create("db.sqlite");
+    const QByteArray dbPath = qgetenv("SQLITEDB");
+    FoosDB::Database::create(dbPath.toStdString());
 
     return WRun(argc, argv, [](const WEnvironment& env) {
       return std::make_unique<EloApp>(env);

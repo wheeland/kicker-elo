@@ -68,9 +68,7 @@ private:
 EloApp::EloApp(const WEnvironment& env)
     : WApplication(env)
 {
-    CheapProfiler prof("Started session");
-
-    setTitle("TFVB Elo Rankings");
+    setTitle(WWidget::tr("page_title"));
 
     WContainerWidget *rootBg = root()->addWidget(make_unique<WContainerWidget>());
     rootBg->addStyleClass("bg");

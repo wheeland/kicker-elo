@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <messages>
-    <message id='ranking_title'> <h1>TFVB Elo Rangliste</h1> </message>
+    <message id='page_title'> Berliner Elo Rangliste </message>
+
+    <message id='ranking_title'> <h1>Berliner Elo Rangliste</h1> </message>
     <message id='ranking_search'> Suche </message>
     <message id='ranking_rank'> Platz </message>
     <message id='ranking_name'> Name </message>

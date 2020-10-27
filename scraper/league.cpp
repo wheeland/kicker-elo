@@ -19,9 +19,6 @@ QVector<LeagueGame> scrapeLeagueSeason(GumboOutput *output)
             if (doneIds.contains(id))
                 continue;
 
-            if (!href.startsWith("https://tfvb.de"))
-                href = QString("https://tfvb.de") + href;
-
             ret << LeagueGame{href, id};
             doneIds << id;
         }

@@ -61,25 +61,33 @@ int main(int argc, char **argv)
     qDebug() << "Scraping" << leagueSources.size() << "League URLs";
 
     for (const QString &source : leagueSources) {
-        const auto cb = [=] (QNetworkReply::NetworkError err, GumboOutput *out) {
+        const QUrl url(source);
+        const QString prefix = url.scheme() + "://" + url.host();
+
+        const auto cb = [=] (QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
             const QVector<LeagueGame> games = scrapeLeagueSeason(out);
             qDebug() << "Scraping" << games.size() << "games from League URL" << source;
 
-            for (const LeagueGame &game : scrapeLeagueSeason(out)) {
+            for (const LeagueGame &game : games) {
                 const int count = database->competitionGameCount(game.tfvbId, CompetitionType::League);
+
+                QString fullUrl = game.url;
+                if (!fullUrl.startsWith(prefix))
+                    fullUrl = prefix + fullUrl;
+
                 if (count > 0) {
-                    qDebug() << "Skipping" << game.tfvbId << game.url << "(from" << source << "): has" << count << "matches already";
+                    qDebug() << "Skipping" << game.tfvbId << fullUrl << "(from" << source << "): has" << count << "matches already";
                     continue;
                 }
 
-                downloader->request(QNetworkRequest(game.url), [=](QNetworkReply::NetworkError err, GumboOutput *out) {
-                    qDebug() << "Scraping" << game.tfvbId << game.url << "(from" << source << ")";
+                downloader->request(QNetworkRequest(fullUrl), [=](QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
+                    qDebug() << "Scraping" << game.tfvbId << fullUrl << "(from" << source << ")";
                     scrapeLeageGame(database, game.tfvbId, out);
                 });
             }
         };
 
-        downloader->request(QNetworkRequest(source), cb);
+        downloader->request(QNetworkRequest(url), cb);
     }
 
     //
@@ -94,12 +102,12 @@ int main(int argc, char **argv)
         QList<QNetworkCookie> cookies{cookie};
         request.setHeader(QNetworkRequest::CookieHeader, QVariant::fromValue(cookies));
 
-        downloader->request(request, [=](QNetworkReply::NetworkError err, GumboOutput *out) {
+        downloader->request(request, [=](QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
             const QStringList tournamentPages = scrapeTournamentOverview(out);
             qDebug() << "Scraping" << tournamentPages.size() << "Tournaments from season" << season;
 
             for (const QString &page : tournamentPages) {
-                downloader->request(QNetworkRequest(QUrl(page)), [=](QNetworkReply::NetworkError err, GumboOutput *out) {
+                downloader->request(QNetworkRequest(QUrl(page)), [=](QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
                     const QVector<Tournament> tournaments = scrapeTournamentPage(out);
 
                     for (const Tournament &tnm : tournaments) {
@@ -109,7 +117,7 @@ int main(int argc, char **argv)
                             continue;
                         }
 
-                        downloader->request(QNetworkRequest(tnm.url), [=](QNetworkReply::NetworkError err, GumboOutput *out) {
+                        downloader->request(QNetworkRequest(tnm.url), [=](QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
                             qDebug() << "Scraping" << tnm.tfvbId << tnm.url << "(from season" << season << ")";
                             scrapeTournament(database, tnm.tfvbId, out);
                         });

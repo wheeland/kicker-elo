@@ -62,7 +62,7 @@ PlayerWidget::PlayerWidget(int playerId)
     backButton->setVerticalAlignment(AlignmentFlag::Middle);
     backButton->decorationStyle().font().setSize("150%");
     backButton->setEnabled(true);
-    backButton->setLink(Wt::WLink(Wt::LinkType::InternalPath, "/"));
+    backButton->setLink(Wt::WLink(Wt::LinkType::InternalPath, ""));
 
     m_title = headerGroup->addWidget(make_unique<WText>());
     m_title->setTextAlignment(AlignmentFlag::Center);

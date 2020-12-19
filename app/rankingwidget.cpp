@@ -1,5 +1,6 @@
 #include "rankingwidget.hpp"
 #include "util.hpp"
+#include "global.hpp"
 
 #include <Wt/WHBoxLayout.h>
 #include <Wt/WAnchor.h>
@@ -10,7 +11,8 @@ using std::make_unique;
 
 static Wt::WLink createPlayerLink(int id)
 {
-    return Wt::WLink(LinkType::InternalPath, "/player/" + std::to_string(id));
+    LinkType linkType = useInternalPaths() ? LinkType::InternalPath : LinkType::Url;
+    return Wt::WLink(linkType, "/player/" + std::to_string(id));
 }
 
 template<typename T, typename... Args>

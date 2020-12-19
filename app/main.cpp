@@ -1,4 +1,5 @@
 #include <Wt/WApplication.h>
+#include <Wt/WEnvironment.h>
 #include <Wt/WBreak.h>
 #include <Wt/WContainerWidget.h>
 #include <Wt/WStackedWidget.h>
@@ -10,6 +11,7 @@
 #include "playerwidget.hpp"
 #include "database.hpp"
 #include "util.hpp"
+#include "global.hpp"
 
 #include <QFile>
 #include <QDebug>
@@ -33,6 +35,15 @@ static const char *msgTypeStr(QtMsgType type)
     }
 }
 
+bool removePrefix(std::string &str, const std::string &prefix)
+{
+    if (str.find(prefix) == 0) {
+        str.erase(0, prefix.size());
+        return true;
+    }
+    return false;
+}
+
 static void messageHandler(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
 {
     Q_UNUSED(ctx)
@@ -53,7 +64,7 @@ class EloApp : public WApplication
 public:
     EloApp(const WEnvironment& env);
 
-    void onInternalPathChanged(const std::string &path);
+    void navigate(const std::string &path);
 
 private:
     void showRanking();
@@ -89,25 +100,39 @@ EloApp::EloApp(const WEnvironment& env)
     m_rankingWidget = m_stack->addWidget(make_unique<RankingWidget>());
     m_playerWidget = m_stack->addWidget(make_unique<PlayerWidget>(1917));
 
-    internalPathChanged().connect(this, &EloApp::onInternalPathChanged);
-
     useStyleSheet("elo-style.css");
     messageResourceBundle().use("elo");
 
-    onInternalPathChanged(internalPath());
+    if (useInternalPaths()) {
+        internalPathChanged().connect(this, &EloApp::navigate);
+        navigate(internalPath());
+    }
+    else {
+        if (!qEnvironmentVariableIsSet(ENV_DEPLOY_PREFIX)) {
+            qCritical() << "Not using internal paths, but no" << ENV_DEPLOY_PREFIX << "is set";
+            qFatal("Aborting");
+        }
+
+        const std::string deployPrefix = qgetenv(ENV_DEPLOY_PREFIX).toStdString();
+        std::string path = env.deploymentPath();
+        if (!removePrefix(path, deployPrefix)) {
+            qCritical() << "Invalid deploy path encountered:" << path;
+        }
+
+        navigate(path);
+    }
 }
 
-void EloApp::onInternalPathChanged(const std::string &path)
+void EloApp::navigate(const std::string &path)
 {
     if (path.find("/player/") == 0) {
         const int id = atoi(path.data() + 8);
         if (id > 0) {
             showPlayer(id);
+            return;
         }
     }
-    else {
-        showRanking();
-    }
+    showRanking();
 }
 
 void EloApp::showRanking()
@@ -123,15 +148,16 @@ void EloApp::showPlayer(int id)
 
 int main(int argc, char **argv)
 {
-    const QByteArray logPath = qgetenv("LOGPATH");
+    const QByteArray logPath = qgetenv(ENV_LOG_PATH);
     s_logFile.setFileName(logPath.isEmpty() ? QString("lo.log") : QString::fromUtf8(logPath));
     s_logFile.open(QFile::Append);
 
     qInstallMessageHandler(messageHandler);
 
-    const QByteArray dbPath = qgetenv("SQLITEDB");
+    const QByteArray dbPath = qgetenv(ENV_DB_PATH);
     if (dbPath.isEmpty()) {
-        qFatal("Need to specify SQLITEDB environment variable");
+        qCritical() << "Need to specify" << ENV_DB_PATH << "environment variable";
+        qFatal("Aborting");
     }
 
     qDebug() << "Started, opening database" << dbPath;

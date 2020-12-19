@@ -1,5 +1,6 @@
 #include "playerwidget.hpp"
 #include "util.hpp"
+#include "global.hpp"
 
 #include <Wt/WHBoxLayout.h>
 #include <Wt/WVBoxLayout.h>
@@ -41,7 +42,8 @@ static std::string player2str(const FoosDB::Player *player)
 
 static WLink player2href(const FoosDB::Player *p)
 {
-    return p ? WLink(LinkType::InternalPath, "/player/" + std::to_string(p->id)) : WLink();
+    LinkType linkType = useInternalPaths() ? LinkType::InternalPath : LinkType::Url;
+    return p ? WLink(linkType, "/player/" + std::to_string(p->id)) : WLink();
 };
 
 PlayerWidget::PlayerWidget(int playerId)

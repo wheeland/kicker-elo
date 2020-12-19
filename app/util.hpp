@@ -7,22 +7,12 @@
 class CheapProfiler
 {
 public:
-    CheapProfiler(const QString &title) : m_title(title)
-    {
-        m_timer.start();
-    }
-
-    ~CheapProfiler()
-    {
-        const qint64 msecs = m_timer.elapsed();
-#if QT_VERSION > QT_VERSION_CHECK(5, 4, 0)
-        qDebug().nospace().noquote() << m_title << ": " << msecs << " msecs";
-#else
-        qDebug().nospace() << m_title << ": " << msecs << " msecs";
-#endif
-    }
+    CheapProfiler(const QString &title);
+    ~CheapProfiler();
 
 private:
     const QString m_title;
     QElapsedTimer m_timer;
 };
+
+QDebug& operator<<(QDebug &dbg, const std::string &s);

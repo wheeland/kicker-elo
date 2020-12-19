@@ -28,6 +28,9 @@ add_executable(${TARGET}
     playerwidget.hpp
     database.cpp
     database.hpp
+    global.cpp
+    global.hpp
+    util.cpp
     util.hpp
 )
 

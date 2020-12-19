@@ -113,9 +113,8 @@ EloApp::EloApp(const WEnvironment& env)
             qFatal("Aborting");
         }
 
-        const std::string deployPrefix = qgetenv(ENV_DEPLOY_PREFIX).data();
         std::string path = env.deploymentPath();
-        if (!removePrefix(path, deployPrefix)) {
+        if (!removePrefix(path, deployPrefix())) {
             qCritical() << "Invalid deploy path encountered:" << path;
         }
 

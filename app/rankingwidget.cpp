@@ -12,7 +12,7 @@ using std::make_unique;
 static Wt::WLink createPlayerLink(int id)
 {
     LinkType linkType = useInternalPaths() ? LinkType::InternalPath : LinkType::Url;
-    return Wt::WLink(linkType, "/player/" + std::to_string(id));
+    return Wt::WLink(linkType, deployPrefix() + "/player/" + std::to_string(id));
 }
 
 template<typename T, typename... Args>

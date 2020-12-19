@@ -29,3 +29,10 @@ bool useInternalPaths()
     static bool use = checkUseInternalPaths();
     return use;
 }
+
+const std::string &deployPrefix()
+{
+    static const std::string s_deployPrefix(qgetenv(ENV_DEPLOY_PREFIX).data());
+    static const std::string s_empty;
+    return useInternalPaths() ? s_empty : s_deployPrefix;
+}

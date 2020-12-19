@@ -43,7 +43,7 @@ static std::string player2str(const FoosDB::Player *player)
 static WLink player2href(const FoosDB::Player *p)
 {
     LinkType linkType = useInternalPaths() ? LinkType::InternalPath : LinkType::Url;
-    return p ? WLink(linkType, "/player/" + std::to_string(p->id)) : WLink();
+    return p ? WLink(linkType, deployPrefix() + "/player/" + std::to_string(p->id)) : WLink();
 };
 
 PlayerWidget::PlayerWidget(int playerId)

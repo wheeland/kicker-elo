@@ -4,6 +4,7 @@
 #include <QSqlDriver>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QFileInfo>
 #include <QDebug>
 
 const float kTournament = 30.f;
@@ -13,6 +14,7 @@ Database::Database(const QString &sqlitePath)
     : m_db(QSqlDatabase::addDatabase("QSQLITE"))
 {
     m_db.setDatabaseName(sqlitePath);
+    qWarning() << "Reading sqlite DB from" << QFileInfo(sqlitePath).absolutePath();
 
     if (!m_db.open()) {
         qWarning() << "Error opening database:" << m_db.lastError();

@@ -12,4 +12,9 @@ struct Tournament
 };
 QVector<Tournament> scrapeTournamentPage(GumboOutput *output);
 
-void scrapeTournament(Database *db, int tfvbId, GumboOutput *output);
+enum TournamentSource {
+    TFVB,
+    DTFB
+};
+
+void scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutput *output);

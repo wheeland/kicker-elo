@@ -32,6 +32,25 @@ enum class MatchType {
     Double = 2
 };
 
+struct Player;
+
+struct PlayerVsPlayerStats
+{
+    const Player *player;
+    qint16 singleWins, singleDraws, singleLosses;
+    qint16 doubleWins, doubleDraws, doubleLosses;
+    qint16 partnerWins, partnerDraws, partnerLosses;
+    qint16 singleDiff, doubleDiff, combinedDiff;
+    qint16 partnerCombinedDiff, partnerDoubleDiff;
+
+    struct Results { int delta, wins, draws, losses; };
+    Results singleResults() const { return Results{singleDiff, singleWins, singleDraws, singleLosses}; }
+    Results doubleResults() const { return Results{doubleDiff, doubleWins, doubleDraws, doubleLosses}; }
+    Results combinedResults() const { return Results{combinedDiff, singleWins+doubleWins, singleDraws+doubleDraws, singleLosses+doubleLosses}; }
+    Results partnerDoubleResults() const { return Results{partnerDoubleDiff, partnerWins, partnerDraws, partnerLosses}; }
+    Results partnerCombinedResults() const { return Results{partnerCombinedDiff, partnerWins, partnerDraws, partnerLosses}; }
+};
+
 struct Player
 {
     int id;
@@ -58,23 +77,8 @@ struct Player
         EloProgression(qint16 yy, quint16 mm, quint16 dd, int s, int d, int c);
     };
     QVector<EloProgression> progression;
-};
 
-struct PlayerVsPlayerStats
-{
-    const Player *player;
-    qint16 singleWins, singleDraws, singleLosses;
-    qint16 doubleWins, doubleDraws, doubleLosses;
-    qint16 partnerWins, partnerDraws, partnerLosses;
-    qint16 singleDiff, doubleDiff, combinedDiff;
-    qint16 partnerCombinedDiff, partnerDoubleDiff;
-
-    struct Results { int delta, wins, draws, losses; };
-    Results singleResults() const { return Results{singleDiff, singleWins, singleDraws, singleLosses}; }
-    Results doubleResults() const { return Results{doubleDiff, doubleWins, doubleDraws, doubleLosses}; }
-    Results combinedResults() const { return Results{combinedDiff, singleWins+doubleWins, singleDraws+doubleDraws, singleLosses+doubleLosses}; }
-    Results partnerDoubleResults() const { return Results{partnerDoubleDiff, partnerWins, partnerDraws, partnerLosses}; }
-    Results partnerCombinedResults() const { return Results{partnerCombinedDiff, partnerWins, partnerDraws, partnerLosses}; }
+    QVector<PlayerVsPlayerStats> pvpStats;
 };
 
 struct PlayerMatch

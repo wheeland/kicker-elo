@@ -9,6 +9,11 @@
 #include "league.hpp"
 #include "tournament.hpp"
 
+static QString prepend(const QString &str, const QString &prefix)
+{
+    return str.startsWith(prefix) ? str : (prefix + str);
+}
+
 QStringList readSourceFiles(const QStringList &paths)
 {
     QStringList ret;
@@ -44,6 +49,8 @@ int main(int argc, char **argv)
     parser.addOption(leagueSourcesOption);
     QCommandLineOption tournamentSeasonOption({"tournament-season", "t"}, "Season to query for tournaments (1-15)", "15");
     parser.addOption(tournamentSeasonOption);
+    QCommandLineOption tournamentSourceOption({"tournament-source", "s"}, "What website to query tournaments from (dtfb, tfvb)", "15");
+    parser.addOption(tournamentSourceOption);
     parser.process(app);
     if (parser.positionalArguments().isEmpty())
         parser.showHelp();
@@ -70,10 +77,7 @@ int main(int argc, char **argv)
 
             for (const LeagueGame &game : games) {
                 const int count = database->competitionGameCount(game.tfvbId, CompetitionType::League);
-
-                QString fullUrl = game.url;
-                if (!fullUrl.startsWith(prefix))
-                    fullUrl = prefix + fullUrl;
+                const QString fullUrl = prepend(game.url, prefix);
 
                 if (count > 0) {
                     qDebug() << "Skipping" << game.tfvbId << fullUrl << "(from" << source << "): has" << count << "matches already";
@@ -97,7 +101,24 @@ int main(int argc, char **argv)
     //
     const int season = parser.value(tournamentSeasonOption).toInt();
     if (season > 0) {
-        QNetworkRequest request(QUrl("https://tfvb.de/index.php/turniere"));
+        const QString tournamentSourceValue = parser.value(tournamentSourceOption);
+        TournamentSource tournamentSource;
+        QUrl url;
+        if (tournamentSourceValue == "dtfb") {
+            tournamentSource = DTFB;
+            url = "https://dtfb.de/index.php/turnierergebnisse";
+        }
+        else if (tournamentSourceValue == "tfvb") {
+            tournamentSource = TFVB;
+            url = "https://tfvb.de/index.php/turniere";
+        }
+        else {
+            qWarning() << "Tournament source must be set to 'dtfb' or 'tfvb'.";
+            return 1;
+        }
+
+        QNetworkRequest request(url);
+        const QString prefix = url.scheme() + "://" + url.host();
         QNetworkCookie cookie("sportsmanager_filter_saison_id", QByteArray::number(season));
         QList<QNetworkCookie> cookies{cookie};
         request.setHeader(QNetworkRequest::CookieHeader, QVariant::fromValue(cookies));
@@ -107,19 +128,22 @@ int main(int argc, char **argv)
             qDebug() << "Scraping" << tournamentPages.size() << "Tournaments from season" << season;
 
             for (const QString &page : tournamentPages) {
-                downloader->request(QNetworkRequest(QUrl(page)), [=](QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
+                const QString fullUrl = prepend(page, prefix);
+
+                downloader->request(QNetworkRequest(QUrl(fullUrl)), [=](QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
                     const QVector<Tournament> tournaments = scrapeTournamentPage(out);
 
                     for (const Tournament &tnm : tournaments) {
+                        const QString fullTournamentUrl = prepend(tnm.url, prefix);
                         const int count = database->competitionGameCount(tnm.tfvbId, CompetitionType::Tournament);
                         if (count > 0) {
-                            qDebug() << "Skipping" << tnm.tfvbId << tnm.url << "(from season" << season << "), has" << count << "matches already";
+                            qDebug() << "Skipping" << tnm.tfvbId << fullTournamentUrl << "(from season" << season << "), has" << count << "matches already";
                             continue;
                         }
 
-                        downloader->request(QNetworkRequest(tnm.url), [=](QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
-                            qDebug() << "Scraping" << tnm.tfvbId << tnm.url << "(from season" << season << ")";
-                            scrapeTournament(database, tnm.tfvbId, out);
+                        downloader->request(QNetworkRequest(fullTournamentUrl), [=](QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
+                            qDebug() << "Scraping" << tnm.tfvbId << fullTournamentUrl << "(from season" << season << ")";
+                            scrapeTournament(database, tnm.tfvbId, tournamentSource, out);
                         });
                     }
                 });
@@ -128,8 +152,12 @@ int main(int argc, char **argv)
     }
 
     QObject::connect(downloader, &Downloader::completed, [&]() {
-        database->recompute();
-        app.quit();
+        static bool done = false;
+        if (!done) {
+            database->recompute();
+            app.quit();
+            done = true;
+        }
     });
 
     return app.exec();

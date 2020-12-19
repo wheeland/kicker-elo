@@ -91,7 +91,7 @@ EloApp::EloApp(const WEnvironment& env)
 
     internalPathChanged().connect(this, &EloApp::onInternalPathChanged);
 
-    useStyleSheet("style.css");
+    useStyleSheet("elo-style.css");
     messageResourceBundle().use("elo");
 
     onInternalPathChanged(internalPath());

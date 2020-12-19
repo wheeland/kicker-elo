@@ -71,7 +71,6 @@ private:
     void showPlayer(int id);
 
     WStackedWidget *m_stack;
-    WAnchor *m_backToRanking;
     RankingWidget *m_rankingWidget;
     PlayerWidget *m_playerWidget;
 };
@@ -89,12 +88,6 @@ EloApp::EloApp(const WEnvironment& env)
 
     WContainerWidget *content = contentBg->addWidget(make_unique<WContainerWidget>());
     content->addStyleClass("content");
-
-    m_backToRanking = content->addWidget(make_unique<WAnchor>());
-    m_backToRanking->setText("&lt;&lt;");
-    m_backToRanking->setPositionScheme(PositionScheme::Absolute);
-    m_backToRanking->setOffsets("-100px", Side::Left);
-    m_backToRanking->setOffsets("100px", Side::Top);
 
     m_stack = content->addWidget(make_unique<WStackedWidget>());
     m_rankingWidget = m_stack->addWidget(make_unique<RankingWidget>());

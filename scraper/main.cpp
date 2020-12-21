@@ -32,6 +32,21 @@ QStringList readSourceFiles(const QStringList &paths)
     return ret;
 }
 
+bool readFloatValue(QCommandLineParser &parser, QCommandLineOption &option, float &dst)
+{
+    if (!parser.isSet(option)) {
+        dst = option.defaultValues().first().toFloat();
+        return true;
+    }
+    bool ok = true;
+    dst = parser.value(option).toFloat(&ok);
+    if (!ok) {
+        qCritical() << "Not a valid value for" << option.names().first();
+        return false;
+    }
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     QCoreApplication app(argc, argv);
@@ -47,18 +62,29 @@ int main(int argc, char **argv)
     parser.addPositionalArgument("sqlite", "Path to SQLite database");
     QCommandLineOption leagueSourcesOption({"league-sources", "l"}, "Sources for league games", "path");
     parser.addOption(leagueSourcesOption);
-    QCommandLineOption tournamentSeasonOption({"tournament-season", "t"}, "Season to query for tournaments (1-15)", "15");
+    QCommandLineOption tournamentSeasonOption({"tournament-season", "t"}, "Season to query for tournaments (1-15)", "", "");
     parser.addOption(tournamentSeasonOption);
-    QCommandLineOption tournamentSourceOption({"tournament-source", "s"}, "What website to query tournaments from (dtfb, tfvb)", "15");
+    QCommandLineOption tournamentSourceOption({"tournament-source", "s"}, "What website to query tournaments from (dtfb, tfvb)", "", "");
     parser.addOption(tournamentSourceOption);
+    QCommandLineOption kLeagueOption(QStringList{"kleague"}, "k-factor used for league games", "k", "20");
+    parser.addOption(kLeagueOption);
+    QCommandLineOption kTournamentOption(QStringList{"ktournament"}, "k-factor used for league games", "k", "30");
+    parser.addOption(kTournamentOption);
+
     parser.process(app);
     if (parser.positionalArguments().isEmpty())
         parser.showHelp();
 
+    float kl, kt;
+    if (!readFloatValue(parser, kLeagueOption, kl) || !readFloatValue(parser, kTournamentOption, kt))
+        return 1;
+    qDebug() << "kLeague =" << kl;
+    qDebug() << "kTournament =" << kt;
+
     const QString sqlitePath = parser.positionalArguments().first();
 
     Downloader *downloader = new Downloader();
-    Database *database = new Database(sqlitePath);
+    Database *database = new Database(sqlitePath, kl, kt);
 
     //
     // Parse and scrape league source files
@@ -99,8 +125,14 @@ int main(int argc, char **argv)
     // different sportsmanager_filter_saison_id, we get the same result all over (for the current season).
     // might be a server-side error, so we just request one season at a time for now -_-
     //
-    const int season = parser.value(tournamentSeasonOption).toInt();
-    if (season > 0) {
+    if (parser.isSet(tournamentSeasonOption)) {
+        bool ok = true;
+        const int season = parser.value(tournamentSeasonOption).toInt(&ok);
+        if (!ok) {
+            qCritical() << "Not a season:" << parser.value(tournamentSeasonOption);
+            return 1;
+        }
+
         const QString tournamentSourceValue = parser.value(tournamentSourceOption);
         TournamentSource tournamentSource;
         QUrl url;

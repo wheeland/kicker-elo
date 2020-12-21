@@ -23,7 +23,7 @@ enum class MatchType {
 class Database
 {
 public:
-    Database(const QString &sqlitePath);
+    Database(const QString &sqlitePath, float kLeague, float kTournament);
     ~Database();
 
     int addCompetition(int tfvbId, CompetitionType type, const QString &name, QDateTime dt);
@@ -41,6 +41,9 @@ private:
     void createTables();
     void createQueries();
     void readData();
+
+    const float m_kLeague;
+    const float m_kTournament;
 
     QSqlDatabase m_db;
     QSqlQuery m_insertPlayerQuery;

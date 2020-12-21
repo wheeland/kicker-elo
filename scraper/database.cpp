@@ -7,14 +7,13 @@
 #include <QFileInfo>
 #include <QDebug>
 
-const float kTournament = 30.f;
-const float kLeague = 20.f;
-
-Database::Database(const QString &sqlitePath)
-    : m_db(QSqlDatabase::addDatabase("QSQLITE"))
+Database::Database(const QString &sqlitePath, float kLeague, float kTournament)
+    : m_kLeague(kLeague)
+    , m_kTournament(kTournament)
+    , m_db(QSqlDatabase::addDatabase("QSQLITE"))
 {
     m_db.setDatabaseName(sqlitePath);
-    qWarning() << "Reading sqlite DB from" << QFileInfo(sqlitePath).absolutePath();
+    qWarning() << "Reading sqlite DB from" << QFileInfo(sqlitePath).absoluteFilePath();
 
     if (!m_db.open()) {
         qWarning() << "Error opening database:" << m_db.lastError();
@@ -421,7 +420,7 @@ void Database::recompute()
         const float result = (match.score1 > match.score2) ? 0.0f :
                              (match.score1 < match.score2) ? 1.0f : 0.5f;
         const bool isTournament = (m_competitions[match.competition].type == CompetitionType::Tournament);
-        const float k = isTournament ? kTournament : kLeague;
+        const float k = isTournament ? m_kTournament : m_kLeague;
 
         if (match.type == MatchType::Single) {
             const int pm1id = addPlayedMatch(match.p1, match.id);

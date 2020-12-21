@@ -516,7 +516,7 @@ void PlayerWidget::updateMatchTable()
         m_rows[i].competition->setText(m.competitionName.toStdString());
         m_rows[i].competition->setTextFormat(TextFormat::UnsafeXHTML);
 
-        if (m.myScore > 1 || m.opponentScore > 1)
+        if (m.myScore + m.opponentScore > 1)
             m_rows[i].score->setText(std::to_string(m.myScore) + ":" + std::to_string(m.opponentScore));
         else
             m_rows[i].score->setText((m.myScore > 0) ? tr("win") : tr("loss"));

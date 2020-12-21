@@ -40,6 +40,7 @@ private:
     SortPolicy m_sortPolicy = Combined;
 
     Wt::WVBoxLayout *m_layout;
+    Wt::WText *m_titleText;
     Wt::WLineEdit *m_searchBar;
     Wt::WTable *m_table;
     Wt::WPushButton *m_comboButton;

@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <messages>
-    <message id='page_title'> Berliner Elo Rangliste </message>
+    <message id='page_title'> Kicker Elo </message>
     
     <message id='menu_button'> Menü </message>
 
-    <message id='ranking_title'> <h1>Berliner Elo Rangliste</h1> </message>
+    <message id='ranking_title'> <h1>Rangliste: {1}</h1> </message>
     <message id='ranking_search'> Suche </message>
     <message id='ranking_rank'> Platz </message>
     <message id='ranking_name'> Name </message>
+    
+    <message id='ger'> DTFB </message>
+    <message id='ber'> TFVB </message>
     
     <message id='combo'> Kombi </message>
     <message id='single'> Einzel </message>
@@ -32,7 +35,7 @@
         <h3>Willkommen auf kicker-elo!</h3> 
         
         <p>
-        Die auf dieser Webseite einsehbaren Statistiken wurden aus öffentlich einsehbaren
+        Die Statistiken auf dieser Webseite werden aus öffentlich einsehbaren
         Liga- und Turnierergebnissen generiert. 
         </p> 
         

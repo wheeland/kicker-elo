@@ -30,9 +30,9 @@ RankingWidget::RankingWidget(FoosDB::Database *db)
     //
     // Add title
     //
-    WText *titleText = addToLayout<WText>(m_layout);
-    titleText->setText(tr("ranking_title"));
-    titleText->setTextAlignment(AlignmentFlag::Center);
+    m_titleText = addToLayout<WText>(m_layout);
+    m_titleText->setText(tr("ranking_title").arg(tr(db->name())));
+    m_titleText->setTextAlignment(AlignmentFlag::Center);
 
     //
     // Add search bar
@@ -106,6 +106,7 @@ RankingWidget::~RankingWidget()
 void RankingWidget::setDatabase(FoosDB::Database *db)
 {
     m_db = db;
+    m_titleText->setText(tr("ranking_title").arg(tr(db->name())));
     update();
 }
 

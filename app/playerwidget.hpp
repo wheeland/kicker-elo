@@ -25,6 +25,8 @@ private:
     void updateOpponents();
     void updateMatchTable();
 
+    Wt::WLink createPlayerLink(const FoosDB::Player *p) const;
+
     void prev();
     void next();
 

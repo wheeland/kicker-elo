@@ -40,11 +40,12 @@ static std::string player2str(const FoosDB::Player *player)
     return player ? (player->firstName + " " + player->lastName).toStdString() : "";
 }
 
-static WLink player2href(const FoosDB::Player *p)
+WLink PlayerWidget::createPlayerLink(const FoosDB::Player *p) const
 {
     LinkType linkType = useInternalPaths() ? LinkType::InternalPath : LinkType::Url;
-    return p ? WLink(linkType, deployPrefix() + "/player/" + std::to_string(p->id)) : WLink();
-};
+    return p && m_db ? Wt::WLink(linkType, deployPrefix() + "/" + m_db->name() + "/player/" + std::to_string(p->id))
+                     : Wt::WLink();
+}
 
 PlayerWidget::PlayerWidget()
 {
@@ -406,7 +407,7 @@ void PlayerWidget::updateOpponents()
                 WContainerWidget *result = addToLayout<WContainerWidget>(container);
                 result->addWidget(make_unique<WText>(diff2str(res1.delta)))->setStyleClass("player_elo_plus");
                 result->addWidget(make_unique<WText>(resultStr(res1)))->setStyleClass("player_pvp_stats");
-                addToLayout<WAnchor>(container, player2href(pvp1.player), player2str(pvp1.player));
+                addToLayout<WAnchor>(container, createPlayerLink(pvp1.player), player2str(pvp1.player));
             }
 
             if (res2.delta < 0) {
@@ -419,7 +420,7 @@ void PlayerWidget::updateOpponents()
                 WContainerWidget *result = addToLayout<WContainerWidget>(container);
                 result->addWidget(make_unique<WText>(diff2str(res2.delta)))->setStyleClass("player_elo_minus");
                 result->addWidget(make_unique<WText>(resultStr(res2)))->setStyleClass("player_pvp_stats");
-                addToLayout<WAnchor>(container, player2href(pvp2.player), player2str(pvp2.player));
+                addToLayout<WAnchor>(container, createPlayerLink(pvp2.player), player2str(pvp2.player));
             }
         };
 
@@ -524,7 +525,7 @@ void PlayerWidget::updateMatchTable()
 
         const auto setPlayerDetails = [&](WAnchor *a, WText *t, const FoosDB::PlayerMatch::Participant &p) {
             a->setText(player2str(p.player));
-            a->setLink(player2href(p.player));
+            a->setLink(createPlayerLink(p.player));
             t->setText(p.player ? " (" + std::to_string(isCombined ? p.eloCombined : p.eloSeparate) + ")"
                                 : "");
         };

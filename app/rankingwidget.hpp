@@ -26,6 +26,8 @@ private:
     void update();
     void updateSearch();
 
+    Wt::WLink createPlayerLink(int id) const;
+
     FoosDB::Database *m_db;
 
     enum SortPolicy {

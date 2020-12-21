@@ -9,12 +9,6 @@
 using namespace Wt;
 using std::make_unique;
 
-static Wt::WLink createPlayerLink(int id)
-{
-    LinkType linkType = useInternalPaths() ? LinkType::InternalPath : LinkType::Url;
-    return Wt::WLink(linkType, deployPrefix() + "/player/" + std::to_string(id));
-}
-
 template<typename T, typename... Args>
 static inline T *addToLayout(WLayout *layout, Args&&... args)
 {
@@ -130,6 +124,12 @@ void RankingWidget::next()
 void RankingWidget::updateSearch()
 {
     update();
+}
+
+WLink RankingWidget::createPlayerLink(int id) const
+{
+    LinkType linkType = useInternalPaths() ? LinkType::InternalPath : LinkType::Url;
+    return Wt::WLink(linkType, deployPrefix() + "/" + m_db->name() + "/player/" + std::to_string(id));
 }
 
 void RankingWidget::update()

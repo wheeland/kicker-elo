@@ -30,8 +30,8 @@ private:
 
     struct PendingDownload
     {
-        const QNetworkRequest request;
-        const DownloadCallback callback;
+        QNetworkRequest request;
+        DownloadCallback callback;
     };
     QVector<PendingDownload> m_pendingDownloads;
     QHash<QNetworkReply*, DownloadCallback> m_activeDownloads;

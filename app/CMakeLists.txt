@@ -22,6 +22,8 @@ set(TARGET eloapp)
 
 add_executable(${TARGET}
     main.cpp
+    app.cpp
+    app.hpp
     rankingwidget.cpp
     rankingwidget.hpp
     playerwidget.cpp
@@ -30,6 +32,8 @@ add_executable(${TARGET}
     database.hpp
     global.cpp
     global.hpp
+    infopopup.cpp
+    infopopup.hpp
     util.cpp
     util.hpp
 )

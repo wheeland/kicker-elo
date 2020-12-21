@@ -25,4 +25,36 @@
     <message id='player_partners'> <h3>Doppelpartner</h3> </message>
     <message id='player_partners_loved'> <h4>Dream Team</h4> </message>
     <message id='player_partners_feared'> <h4>Angstpartner</h4> </message>
+    
+    <message id='info_popup_text'>
+        <h3>Willkommen auf kicker-elo!</h3> 
+        
+        <p>
+        Die auf dieser Webseite einsehbaren Statistiken wurden aus öffentlich einsehbaren
+        Liga- und Turnierergebnissen generiert. 
+        </p> 
+        
+        <p>
+        Mit Ausnahme der Namen und Spielergebnisse der einzelnen Spieler werden 
+        keine personenbezogenen Daten erhoben, verarbeitet oder gespeichert.
+        </p>
+        
+        <p>
+        Der Betreiber der Seite hat keine Verbindung zum DTFB, TFVB, oder sonst 
+        einem Verband. Bei den hier dargestellen Statistiken handelt es sich nicht
+        um offizielle Ranglisten der jeweiligen Verbände, sondern lediglich
+        um eine unabhängige Analyse der öffentlich einsehbaren Spielergebnisse.
+        </p>
+        
+        <p>
+        Sollten Sie mit der Nennung Ihres Namens nicht einverstanden sein, 
+        schreiben sie einfach eine Mail an <a href="mailto:kicker-elo@web.de">kicker-elo@web.de</a> 
+        Der Name wird dann aus dem System entfernt.
+        </p>
+        
+        <p>
+        Viel Spaß :)
+        </p>
+    </message>
+    <message id='info_popup_button'> Schließen </message>
 </messages>

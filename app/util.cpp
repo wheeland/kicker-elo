@@ -20,3 +20,12 @@ QDebug &operator<<(QDebug &dbg, const std::string &s)
     dbg << s.c_str();
     return dbg;
 }
+
+bool removePrefix(std::string &str, const std::string &prefix)
+{
+    if (str.find(prefix) == 0) {
+        str.erase(0, prefix.size());
+        return true;
+    }
+    return false;
+}

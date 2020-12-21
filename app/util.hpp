@@ -15,4 +15,6 @@ private:
     QElapsedTimer m_timer;
 };
 
+bool removePrefix(std::string &str, const std::string &prefix);
+
 QDebug& operator<<(QDebug &dbg, const std::string &s);

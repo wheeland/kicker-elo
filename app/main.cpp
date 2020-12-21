@@ -6,12 +6,12 @@
 #include <Wt/WLineEdit.h>
 #include <Wt/WPushButton.h>
 #include <Wt/WText.h>
+#include <Wt/WWebWidget.h>
 
-#include "rankingwidget.hpp"
-#include "playerwidget.hpp"
 #include "database.hpp"
 #include "util.hpp"
 #include "global.hpp"
+#include "app.hpp"
 
 #include <QFile>
 #include <QDebug>
@@ -35,15 +35,6 @@ static const char *msgTypeStr(QtMsgType type)
     }
 }
 
-bool removePrefix(std::string &str, const std::string &prefix)
-{
-    if (str.find(prefix) == 0) {
-        str.erase(0, prefix.size());
-        return true;
-    }
-    return false;
-}
-
 static void messageHandler(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
 {
     Q_UNUSED(ctx)
@@ -57,85 +48,6 @@ static void messageHandler(QtMsgType type, const QMessageLogContext &ctx, const 
     const QString out = QString::fromUtf8(dtStrBuf) + " " + QString(msgTypeStr(type)) + " " + msg + "\n";
     s_logFile.write(out.toUtf8());
     s_logFile.flush();
-}
-
-class EloApp : public WApplication
-{
-public:
-    EloApp(const WEnvironment& env);
-
-    void navigate(const std::string &path);
-
-private:
-    void showRanking();
-    void showPlayer(int id);
-
-    WStackedWidget *m_stack;
-    RankingWidget *m_rankingWidget;
-    PlayerWidget *m_playerWidget;
-};
-
-EloApp::EloApp(const WEnvironment& env)
-    : WApplication(env)
-{
-    setTitle(WWidget::tr("page_title"));
-
-    WContainerWidget *rootBg = root()->addWidget(make_unique<WContainerWidget>());
-    rootBg->addStyleClass("bg");
-
-    WContainerWidget *contentBg = root()->addWidget(make_unique<WContainerWidget>());
-    contentBg->addStyleClass("content_bg");
-
-    WContainerWidget *content = contentBg->addWidget(make_unique<WContainerWidget>());
-    content->addStyleClass("content");
-
-    m_stack = content->addWidget(make_unique<WStackedWidget>());
-    m_rankingWidget = m_stack->addWidget(make_unique<RankingWidget>());
-    m_playerWidget = m_stack->addWidget(make_unique<PlayerWidget>(1917));
-
-    useStyleSheet("elo-style.css");
-    messageResourceBundle().use("elo");
-
-    if (useInternalPaths()) {
-        internalPathChanged().connect(this, &EloApp::navigate);
-        navigate(internalPath());
-    }
-    else {
-        if (!qEnvironmentVariableIsSet(ENV_DEPLOY_PREFIX)) {
-            qCritical() << "Not using internal paths, but no" << ENV_DEPLOY_PREFIX << "is set";
-            qFatal("Aborting");
-        }
-
-        std::string path = env.deploymentPath();
-        if (!removePrefix(path, deployPrefix())) {
-            qCritical() << "Invalid deploy path encountered:" << path;
-        }
-
-        navigate(path);
-    }
-}
-
-void EloApp::navigate(const std::string &path)
-{
-    if (path.find("/player/") == 0) {
-        const int id = atoi(path.data() + 8);
-        if (id > 0) {
-            showPlayer(id);
-            return;
-        }
-    }
-    showRanking();
-}
-
-void EloApp::showRanking()
-{
-    m_stack->setCurrentWidget(m_rankingWidget);
-}
-
-void EloApp::showPlayer(int id)
-{
-    m_stack->setCurrentWidget(m_playerWidget);
-    m_playerWidget->setPlayerId(id);
 }
 
 int main(int argc, char **argv)

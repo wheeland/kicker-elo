@@ -55,6 +55,7 @@ EloApp::EloApp(const WEnvironment& env)
     m_menuButton = contentBg->addWidget(make_unique<WPushButton>(WWidget::tr("menu_button")));
     m_menuButton->addStyleClass("menu_button");
     m_menuButton->clicked().connect(this, &EloApp::showMenu);
+    m_menuButton->decorationStyle().font().setSize("150%");
 
     //
     // Create content
@@ -66,10 +67,15 @@ EloApp::EloApp(const WEnvironment& env)
     //
     // Dimmer
     //
-    m_bgDimmer = root()->addWidget(make_unique<WContainerWidget>());
+    m_bgDimmer = root()->addWidget(make_unique<WPushButton>());
     m_bgDimmer->addStyleClass("dimmer");
     m_bgDimmer->setZIndex(10);
     m_bgDimmer->hide();
+    // if we click the dimmed area while the menu is open, hide the menu
+    m_bgDimmer->clicked().connect([=]() {
+        if (!m_infoPopup->isVisible())
+            showRanking();
+    });
 
     //
     // Info Popup

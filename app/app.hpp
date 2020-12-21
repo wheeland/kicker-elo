@@ -35,6 +35,6 @@ private:
     Wt::WContainerWidget *m_menuContainer;
     Wt::WMenu *m_menu;
 
-    Wt::WContainerWidget *m_bgDimmer;
+    Wt::WPushButton *m_bgDimmer;
     InfoPopup *m_infoPopup;
 };

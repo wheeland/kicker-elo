@@ -27,7 +27,6 @@ InfoPopup::InfoPopup()
     });
 
     addStyleClass("info_popup");
-    setZIndex(100);
 }
 
 InfoPopup::~InfoPopup()

@@ -23,8 +23,8 @@ static inline T *addToLayout(WLayout *layout, Args&&... args)
     return ret;
 }
 
-RankingWidget::RankingWidget()
-    : m_db(FoosDB::Database::instance())
+RankingWidget::RankingWidget(FoosDB::Database *db)
+    : m_db(db)
 {
     CheapProfiler prof("Creating RankingWidget");
 
@@ -107,6 +107,12 @@ RankingWidget::RankingWidget()
 
 RankingWidget::~RankingWidget()
 {
+}
+
+void RankingWidget::setDatabase(FoosDB::Database *db)
+{
+    m_db = db;
+    update();
 }
 
 void RankingWidget::prev()

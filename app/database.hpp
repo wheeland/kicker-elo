@@ -109,10 +109,12 @@ struct PlayerMatch
 class Database
 {
 public:
-    static void create(const std::string &dbPath);
+    static void create(const std::string &name, const std::string &path);
     static void destroy();
 
-    static Database *instance();
+    const std::string &name() const { return m_name; }
+
+    static Database *instance(const std::string &name);
 
     const Player *getPlayer(int id) const;
     int getPlayerCount() const { return m_players.size(); }
@@ -125,11 +127,13 @@ public:
     QVector<Player::EloProgression> getPlayerProgression(const Player *player);
 
 private:
-    Database(const std::string &dbPath);
+    Database(const std::string &name, const std::string &dbPath);
     ~Database();
 
     void readData();
     QSqlDatabase *getOrCreateDb();
+
+    std::string m_name;
 
     // each thread needs to have its own database connection
     QReadWriteLock m_dbLock;

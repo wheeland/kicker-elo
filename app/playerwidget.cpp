@@ -46,8 +46,7 @@ static WLink player2href(const FoosDB::Player *p)
     return p ? WLink(linkType, deployPrefix() + "/player/" + std::to_string(p->id)) : WLink();
 };
 
-PlayerWidget::PlayerWidget(int playerId)
-    : m_db(FoosDB::Database::instance())
+PlayerWidget::PlayerWidget()
 {
     CheapProfiler prof("Creating PlayerWidget");
 
@@ -208,20 +207,19 @@ PlayerWidget::PlayerWidget(int playerId)
 
     m_prevButton->clicked().connect(this, &PlayerWidget::prev);
     m_nextButton->clicked().connect(this, &PlayerWidget::next);
-
-    setPlayerId(playerId);
 }
 
 PlayerWidget::~PlayerWidget()
 {
 }
 
-void PlayerWidget::setPlayerId(int id)
+void PlayerWidget::setPlayerId(FoosDB::Database *db, int id)
 {
     CheapProfiler prof("PlayerWidget::SetPlayerId()");
 
+    m_db = db;
     m_playerId = id;
-    m_player = m_db->getPlayer(id);
+    m_player = db->getPlayer(id);
     m_page = 0;
 
     m_peakSingle = m_peakDouble = m_peakCombined = 0;
@@ -230,10 +228,10 @@ void PlayerWidget::setPlayerId(int id)
     const int ec = m_player ? m_player->eloCombined : 0;
 
     if (m_player) {
-        m_pvpStats = m_db->getPlayerVsPlayerStats(m_player);
-        m_singleCount = m_db->getPlayerMatchCount(m_player, FoosDB::EloDomain::Single);
-        m_doubleCount = m_db->getPlayerMatchCount(m_player, FoosDB::EloDomain::Double);
-        m_progression = m_db->getPlayerProgression(m_player);
+        m_pvpStats = db->getPlayerVsPlayerStats(m_player);
+        m_singleCount = db->getPlayerMatchCount(m_player, FoosDB::EloDomain::Single);
+        m_doubleCount = db->getPlayerMatchCount(m_player, FoosDB::EloDomain::Double);
+        m_progression = db->getPlayerProgression(m_player);
 
         for (const FoosDB::Player::EloProgression &progression : m_progression) {
             m_peakSingle = qMax(m_peakSingle, (int) progression.eloSingle);
@@ -486,7 +484,7 @@ void PlayerWidget::updateMatchTable()
 
         WContainerWidget *result = addVContainer(2);
         row.score = addToLayout<WText>(result);
-        row.score->decorationStyle().font().setWeight(FontWeight::Bold);
+//        row.score->decorationStyle().font().setWeight(FontWeight::Bold);
         row.eloChange = addToLayout<WText>(result);
 
         WContainerWidget *player2Widget = addVContainer(3);

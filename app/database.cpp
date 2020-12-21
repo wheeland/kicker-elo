@@ -22,27 +22,32 @@ Player::EloProgression::EloProgression(qint16 yy, quint16 mm, quint16 dd, int s,
     eloCombined = c;
 }
 
-static Database *s_instance = nullptr;
+std::vector<Database*> s_databases;
 
-void Database::create(const std::string &dbPath)
+void Database::create(const std::string &name, const std::string &path)
 {
-    if (!s_instance) {
-        s_instance = new Database(dbPath);
-    }
+    if (!instance(name))
+        s_databases.push_back(new Database(name, path));
 }
 
 void Database::destroy()
 {
-    delete s_instance;
-    s_instance = nullptr;
+    for (Database *db : s_databases)
+        delete db;
+    s_databases.clear();
 }
 
-Database *Database::instance()
+Database *Database::instance(const std::string &name)
 {
-    return s_instance;
+    for (Database *db : s_databases) {
+        if (db->name() == name)
+            return db;
+    }
+    return nullptr;
 }
 
-Database::Database(const std::string &dbPath)
+Database::Database(const std::string &name, const std::string &dbPath)
+    : m_name(name)
 {
     QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE", genConnName());
     db.setDatabaseName(QString::fromStdString(dbPath));

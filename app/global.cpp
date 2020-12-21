@@ -5,7 +5,8 @@
 
 const char * const ENV_INTERNAL_PATH = "ELO_USE_INTERNAL_PATHS";
 const char * const ENV_DEPLOY_PREFIX = "ELO_DEPLOY_PREFIX";
-const char * const ENV_DB_PATH = "ELO_DB_PATH";
+const char * const ENV_DB_PATH_BERLIN = "ELO_DB_PATH_BERLIN";
+const char * const ENV_DB_PATH_GERMANY = "ELO_DB_PATH_GERMANY";
 const char * const ENV_LOG_PATH = "ELO_LOG_PATH";
 
 static bool checkUseInternalPaths()

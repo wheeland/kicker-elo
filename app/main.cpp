@@ -58,15 +58,17 @@ int main(int argc, char **argv)
 
     qInstallMessageHandler(messageHandler);
 
-    const QByteArray dbPath = qgetenv(ENV_DB_PATH);
-    if (dbPath.isEmpty()) {
-        qCritical() << "Need to specify" << ENV_DB_PATH << "environment variable";
+    const QByteArray dbPathBer = qgetenv(ENV_DB_PATH_BERLIN);
+    const QByteArray dbPathGer = qgetenv(ENV_DB_PATH_GERMANY);
+    if (dbPathBer.isEmpty() || dbPathGer.isEmpty()) {
+        qCritical() << "Need to specify" << ENV_DB_PATH_BERLIN << "and" << ENV_DB_PATH_GERMANY << "environment variables";
         qFatal("Aborting");
     }
 
-    qDebug() << "Started, opening database" << dbPath;
+    qDebug() << "Started, opening databases" << dbPathBer << "and" << dbPathGer;
 
-    FoosDB::Database::create(std::string(dbPath.constData()));
+    FoosDB::Database::create("ger", std::string(dbPathGer.constData()));
+    FoosDB::Database::create("ber", std::string(dbPathBer.constData()));
 
     return WRun(argc, argv, [](const WEnvironment& env) {
       return std::make_unique<EloApp>(env);

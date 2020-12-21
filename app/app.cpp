@@ -11,7 +11,12 @@ EloApp::EloApp(const WEnvironment& env)
     : WApplication(env)
 {
     setTitle(WWidget::tr("page_title"));
+    useStyleSheet("elo-style.css");
+    messageResourceBundle().use("elo");
 
+    //
+    // Create div hierarchy
+    //
     WContainerWidget *rootBg = root()->addWidget(make_unique<WContainerWidget>());
     rootBg->addStyleClass("bg");
 
@@ -21,35 +26,69 @@ EloApp::EloApp(const WEnvironment& env)
     WContainerWidget *content = contentBg->addWidget(make_unique<WContainerWidget>());
     content->addStyleClass("content");
 
-    m_stack = content->addWidget(make_unique<WStackedWidget>());
-    m_stack->addStyleClass("content_inner");
-    m_rankingWidget = m_stack->addWidget(make_unique<RankingWidget>());
-    m_playerWidget = m_stack->addWidget(make_unique<PlayerWidget>(1917));
+    m_contentPane = content->addWidget(make_unique<WStackedWidget>());
+    m_contentPane->addStyleClass("content_inner");
 
-    WPushButton *infoButton = content->addWidget(make_unique<WPushButton>("Information"));
-    infoButton->decorationStyle().font().setSize("150%");
+    m_menuContainer = contentBg->addWidget(make_unique<WContainerWidget>());
+    m_menuContainer->addStyleClass("menu_container");
+    m_menuContainer->setZIndex(15);
 
+    //
+    // Create drop-down menu
+    //
+    m_menu = m_menuContainer->addNew<Wt::WMenu>();
+    m_menu->addStyleClass("menu");
+    m_menu->setWidth(150);
+
+    WMenuItem *menuGermany = m_menu->addItem("Deutschland");
+    WMenuItem *menuBerlin = m_menu->addItem("Berlin");
+    WMenuItem *menuInfo = m_menu->addItem("Info");
+
+    LinkType linkType = useInternalPaths() ? LinkType::InternalPath : LinkType::Url;
+    menuGermany->setLink(WLink(linkType, deployPrefix() + "/ger/"));
+    menuBerlin->setLink(WLink(linkType, deployPrefix() + "/ber/"));
+    menuInfo->setLink(WLink(LinkType::InternalPath, "/info"));
+
+    //
+    // Menu button
+    //
+    m_menuButton = contentBg->addWidget(make_unique<WPushButton>(WWidget::tr("menu_button")));
+    m_menuButton->addStyleClass("menu_button");
+    m_menuButton->clicked().connect(this, &EloApp::showMenu);
+
+    //
+    // Create content
+    //
+    m_currentDb = FoosDB::Database::instance("ger");
+    m_rankingWidget = m_contentPane->addWidget(make_unique<RankingWidget>(m_currentDb));
+    m_playerWidget = m_contentPane->addWidget(make_unique<PlayerWidget>());
+
+    //
+    // Dimmer
+    //
     m_bgDimmer = root()->addWidget(make_unique<WContainerWidget>());
-    m_bgDimmer->addStyleClass("bg_overlay");
-    m_bgDimmer->setZIndex(50);
+    m_bgDimmer->addStyleClass("dimmer");
+    m_bgDimmer->setZIndex(10);
     m_bgDimmer->hide();
 
+    //
+    // Info Popup
+    //
     m_infoPopup = contentBg->addWidget(make_unique<InfoPopup>());
+    m_infoPopup->setZIndex(20);
     m_infoPopup->hide();
+    m_infoPopup->closeClicked().connect(this, &EloApp::showRanking);
 
-    m_infoPopup->closeClicked().connect([=]() {
-        m_bgDimmer->hide();
-        m_infoPopup->hide();
-    });
-
-    useStyleSheet("elo-style.css");
-    messageResourceBundle().use("elo");
-
+    //
+    // Navigate to initial page
+    //
     if (useInternalPaths()) {
         internalPathChanged().connect(this, &EloApp::navigate);
         navigate(internalPath());
     }
     else {
+        internalPathChanged().connect(this, &EloApp::onInternalPathChanged);
+
         if (!qEnvironmentVariableIsSet(ENV_DEPLOY_PREFIX)) {
             qCritical() << "Not using internal paths, but no" << ENV_DEPLOY_PREFIX << "is set";
             qFatal("Aborting");
@@ -64,10 +103,34 @@ EloApp::EloApp(const WEnvironment& env)
     }
 }
 
-void EloApp::navigate(const std::string &path)
+void EloApp::navigate(std::string path)
 {
-    if (path.find("/player/") == 0) {
-        const int id = atoi(path.data() + 8);
+    // this whole navigation business is one big foul pile of excrement,
+    // but this is what lighttpd and this whole web fuckery gives us.
+    // we abuse the internalPath mechanism to display the info page without reloading
+    // the page, and without leaving any trace in the URL bar,
+    // by setting internalPath to "/path" and then immediately switching back to ""
+    if (m_infoPopup->isVisible()) {
+        return;
+    }
+
+    if (removePrefix(path, "/ger")) {
+        m_currentDb = FoosDB::Database::instance("ger");
+        m_rankingWidget->setDatabase(FoosDB::Database::instance("ger"));
+    }
+    else if (removePrefix(path, "/ber")) {
+        m_currentDb = FoosDB::Database::instance("ber");
+        m_rankingWidget->setDatabase(FoosDB::Database::instance("ber"));
+    }
+
+    if (path == "/info") {
+        showInfo();
+        setInternalPath("", true);
+        return;
+    }
+
+    if (removePrefix(path, "/player/")) {
+        const int id = atoi(path.data());
         if (id > 0) {
             showPlayer(id);
             return;
@@ -78,13 +141,44 @@ void EloApp::navigate(const std::string &path)
     }
 }
 
+void EloApp::onInternalPathChanged(const std::string &path)
+{
+    navigate(path);
+}
+
 void EloApp::showRanking()
 {
-    m_stack->setCurrentWidget(m_rankingWidget);
+    m_contentPane->setCurrentWidget(m_rankingWidget);
+    m_menuButton->show();
+    m_menuContainer->hide();
+    m_bgDimmer->hide();
+    m_infoPopup->hide();
 }
 
 void EloApp::showPlayer(int id)
 {
-    m_stack->setCurrentWidget(m_playerWidget);
-    m_playerWidget->setPlayerId(id);
+    m_contentPane->setCurrentWidget(m_playerWidget);
+    m_playerWidget->setPlayerId(m_currentDb, id);
+    m_menuButton->hide();
+    m_menuContainer->hide();
+    m_bgDimmer->hide();
+    m_infoPopup->hide();
+}
+
+void EloApp::showMenu()
+{
+    m_contentPane->setCurrentWidget(m_rankingWidget);
+    m_menuButton->hide();
+    m_menuContainer->show();
+    m_bgDimmer->show();
+    m_infoPopup->hide();
+}
+
+void EloApp::showInfo()
+{
+    m_contentPane->setCurrentWidget(m_rankingWidget);
+    m_menuButton->show();
+    m_menuContainer->hide();
+    m_bgDimmer->show();
+    m_infoPopup->show();
 }

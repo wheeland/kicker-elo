@@ -14,10 +14,10 @@
 class PlayerWidget : public Wt::WContainerWidget
 {
 public:
-    PlayerWidget(int playerId);
+    PlayerWidget();
     ~PlayerWidget();
 
-    void setPlayerId(int id);
+    void setPlayerId(FoosDB::Database *db, int id);
 
 private:
     void updateChart();
@@ -30,10 +30,11 @@ private:
 
     void setDomain(FoosDB::EloDomain domain);
 
-    FoosDB::Database *m_db;
-
     int m_playerId = 0;
+
+    FoosDB::Database *m_db = nullptr;
     const FoosDB::Player *m_player = nullptr;
+
     QVector<FoosDB::PlayerVsPlayerStats> m_pvpStats;
     QVector<FoosDB::Player::EloProgression> m_progression;
 

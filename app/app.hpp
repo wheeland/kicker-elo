@@ -24,6 +24,7 @@ private:
     void showPlayer(int id);
     void showMenu();
     void showInfo();
+    void hideInfo();
 
     FoosDB::Database *m_currentDb;
 

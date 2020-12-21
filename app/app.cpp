@@ -7,6 +7,8 @@
 using namespace Wt;
 using std::make_unique;
 
+static const char * const DISMISSED_COOKIE = "dismissed_info";
+
 EloApp::EloApp(const WEnvironment& env)
     : WApplication(env)
 {
@@ -83,7 +85,7 @@ EloApp::EloApp(const WEnvironment& env)
     m_infoPopup = contentBg->addWidget(make_unique<InfoPopup>());
     m_infoPopup->setZIndex(20);
     m_infoPopup->hide();
-    m_infoPopup->closeClicked().connect(this, &EloApp::showRanking);
+    m_infoPopup->closeClicked().connect(this, &EloApp::hideInfo);
 
     //
     // Navigate to initial page
@@ -107,6 +109,9 @@ EloApp::EloApp(const WEnvironment& env)
 
         navigate(path);
     }
+
+    if (!env.getCookie(DISMISSED_COOKIE))
+        navigate("/info");
 }
 
 void EloApp::navigate(std::string path)
@@ -187,4 +192,12 @@ void EloApp::showInfo()
     m_menuContainer->hide();
     m_bgDimmer->show();
     m_infoPopup->show();
+}
+
+void EloApp::hideInfo()
+{
+    if (!environment().getCookie(DISMISSED_COOKIE)) {
+        setCookie(DISMISSED_COOKIE, "1", 315360000, "", "/");
+    }
+    showRanking();
 }

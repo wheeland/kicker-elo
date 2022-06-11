@@ -1,0 +1,21 @@
+- add to lighttpd config like this:
+        fastcgi.server = (
+	        "/tfvb-elo" => (
+		        "tfvb-elo" => (
+			        "socket" => "/var/run/wt/socket",
+			        "bin-path" => "/var/elo/eloapp.fcgi",
+			        "max-procs" => 4,
+			        "check-local" => "disable",
+			        "bin-environment" => (
+				        "LOGPATH" => "/var/elo/elo.log",
+				        "SQLITEDB" => "/var/elo/db.sqlite",
+				        "LD_LIBRARY_PATH" => "/usr/local/lib",
+				        "WT_APP_ROOT" => "/var/elo",
+			        )
+		        )
+	        )
+        )
+- need to make sure that /var/run/wt is created at system boot:
+    (for some reason, this path seems to be hardcoded in wt)
+    https://serverfault.com/questions/779634/create-a-directory-under-var-run-at-boot
+

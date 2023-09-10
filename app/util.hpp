@@ -4,6 +4,8 @@
 #include <QString>
 #include <QDebug>
 
+//#define ENABLE_CHEAP_PROFILER
+
 class CheapProfiler
 {
 public:

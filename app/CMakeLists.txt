@@ -10,7 +10,6 @@ set(WT_DIRECTORY "/usr" CACHE STRING "Path to the Wt deployment directory")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Boost REQUIRED)
 find_package(Qt5 COMPONENTS Core Sql REQUIRED)
 
 include_directories("${WT_DIRECTORY}/include")

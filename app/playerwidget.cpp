@@ -48,6 +48,7 @@ WLink PlayerWidget::createPlayerLink(const FoosDB::Player *p) const
 }
 
 PlayerWidget::PlayerWidget()
+    : m_databasePrefix("ber")
 {
     CheapProfiler prof("Creating PlayerWidget");
 
@@ -59,13 +60,11 @@ PlayerWidget::PlayerWidget()
     WContainerWidget *headerGroup = addToLayout<WContainerWidget>(this);
     headerGroup->setWidth(WLength(100, WLength::Unit::Percentage));
 
-    WPushButton *backButton = headerGroup->addWidget(make_unique<WPushButton>("<<"));
-    backButton->setFloatSide(Side::Left);
-    backButton->setVerticalAlignment(AlignmentFlag::Middle);
-    backButton->decorationStyle().font().setSize("150%");
-    backButton->setEnabled(true);
-    LinkType linkType = useInternalPaths() ? LinkType::InternalPath : LinkType::Url;
-    backButton->setLink(WLink(linkType, deployPrefix() + "/"));
+    m_backButton = headerGroup->addWidget(make_unique<WPushButton>("<<"));
+    m_backButton->setFloatSide(Side::Left);
+    m_backButton->setVerticalAlignment(AlignmentFlag::Middle);
+    m_backButton->decorationStyle().font().setSize("150%");
+    m_backButton->setEnabled(true);
 
     m_title = headerGroup->addWidget(make_unique<WText>());
     m_title->setTextAlignment(AlignmentFlag::Center);
@@ -208,10 +207,19 @@ PlayerWidget::PlayerWidget()
 
     m_prevButton->clicked().connect(this, &PlayerWidget::prev);
     m_nextButton->clicked().connect(this, &PlayerWidget::next);
+
+    setDatabasePrefix("ber");
 }
 
 PlayerWidget::~PlayerWidget()
 {
+}
+
+void PlayerWidget::setDatabasePrefix(const QString &prefix)
+{
+    m_databasePrefix = prefix;
+    LinkType linkType = useInternalPaths() ? LinkType::InternalPath : LinkType::Url;
+    m_backButton->setLink(WLink(linkType, deployPrefix() + "/" + qPrintable(m_databasePrefix) + "/"));
 }
 
 void PlayerWidget::setPlayerId(FoosDB::Database *db, int id)

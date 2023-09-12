@@ -18,6 +18,7 @@ public:
     ~PlayerWidget();
 
     void setPlayerId(FoosDB::Database *db, int id);
+    void setDatabasePrefix(const QString &prefix);
 
 private:
     void updateChart();
@@ -35,6 +36,7 @@ private:
     int m_playerId = 0;
 
     FoosDB::Database *m_db = nullptr;
+    QString m_databasePrefix;
     const FoosDB::Player *m_player = nullptr;
 
     QVector<FoosDB::PlayerVsPlayerStats> m_pvpStats;
@@ -48,6 +50,7 @@ private:
 
     Wt::WVBoxLayout *m_layout;
     Wt::WText *m_title;
+    Wt::WPushButton *m_backButton;
 
     Wt::WText *m_eloCombined;
     Wt::WText *m_eloCombinedPeak;

@@ -128,10 +128,12 @@ void EloApp::navigate(std::string path)
     if (removePrefix(path, "/ger")) {
         m_currentDb = FoosDB::Database::instance("ger");
         m_rankingWidget->setDatabase(FoosDB::Database::instance("ger"));
+        m_playerWidget->setDatabasePrefix("ger");
     }
     else if (removePrefix(path, "/ber")) {
         m_currentDb = FoosDB::Database::instance("ber");
         m_rankingWidget->setDatabase(FoosDB::Database::instance("ber"));
+        m_playerWidget->setDatabasePrefix("ber");
     }
 
     if (path == "/info") {

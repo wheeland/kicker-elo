@@ -44,6 +44,7 @@ private:
 
     const float m_kLeague;
     const float m_kTournament;
+    bool m_debugSpam = false;
 
     QSqlDatabase m_db;
     QSqlQuery m_insertPlayerQuery;

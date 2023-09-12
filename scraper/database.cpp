@@ -207,6 +207,13 @@ int Database::addCompetition(int tfvbId, CompetitionType type, const QString &na
     checkQueryStatus(m_insertCompetitionQuery);
 
     m_competitions[lastId + 1] = Competition{lastId + 1, tfvbId, type, name, dt};
+    
+    if (m_debugSpam) {
+        qDebug().noquote() << QString::asprintf("[DB] Add Competition id=%d: %s (%4d-%02d-%02d)", 
+            tfvbId, qPrintable(name),
+            dt.date().year(), dt.date().month(), dt.date().day()
+        );
+    }
 
     return lastId + 1;
 }
@@ -245,6 +252,10 @@ void Database::addPlayer(int id, const QString &firstName, const QString &lastNa
     checkQueryStatus(m_insertPlayerQuery);
 
     m_players[id] = Player{id, firstName, lastName};
+    
+    if (m_debugSpam) {
+        qDebug().noquote() << QString::asprintf("[DB] Add Player id=%d: %s %s", id, qPrintable(firstName), qPrintable(lastName));
+    }
 }
 
 void Database::addMatch(int competition, int position, int score1, int score2, int p1, int p2)
@@ -263,6 +274,13 @@ void Database::addMatch(int competition, int position, int score1, int score2, i
     m_insertMatchQuery.bindValue(9, 0);
     m_insertMatchQuery.exec();
     checkQueryStatus(m_insertMatchQuery);
+    
+    if (m_debugSpam) {
+        qDebug().noquote().nospace() << "[DB] Add Match comp=" << competition << ": "
+                                     << m_players[p1].firstName << " " <<  m_players[p1].lastName << " "
+                                     << score1 << " : " << score2 << " "
+                                     << m_players[p2].firstName << " " <<  m_players[p2].lastName;
+    }
 
     m_matches[id] = Match{id, competition, position, MatchType::Single, score1, score2, p1, p2, 0, 0};
 }
@@ -283,6 +301,15 @@ void Database::addMatch(int competition, int position, int score1, int score2, i
     m_insertMatchQuery.bindValue(9, p2b);
     m_insertMatchQuery.exec();
     checkQueryStatus(m_insertMatchQuery);
+    
+    if (m_debugSpam) {
+        qDebug().noquote().nospace() << "[DB] Add Match comp=" << competition << ": "
+                                     << m_players[p1a].firstName << " " <<  m_players[p1a].lastName << " / "
+                                     << m_players[p1b].firstName << " " <<  m_players[p1b].lastName << " "
+                                     << score1 << " : " << score2 << " "
+                                     << m_players[p2a].firstName << " " <<  m_players[p2a].lastName << " / "
+                                     << m_players[p2b].firstName << " " <<  m_players[p2b].lastName;
+    }
 
     m_matches[id] = Match{id, competition, position, MatchType::Double, score1, score2, p1a, p2a, p1b, p2b};
 }

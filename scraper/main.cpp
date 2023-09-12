@@ -70,6 +70,8 @@ int main(int argc, char **argv)
     parser.addOption(kLeagueOption);
     QCommandLineOption kTournamentOption(QStringList{"ktournament"}, "k-factor used for league games", "k", "30");
     parser.addOption(kTournamentOption);
+    QCommandLineOption forceRecompute(QStringList{{"recompute", "r"}}, "Force recomputation of ELO");
+    parser.addOption(forceRecompute);
 
     parser.process(app);
     if (parser.positionalArguments().isEmpty())
@@ -85,7 +87,7 @@ int main(int argc, char **argv)
 
     Downloader *downloader = new Downloader();
     Database *database = new Database(sqlitePath, kl, kt);
-	bool recomputeElo = false;
+	bool recomputeElo = parser.isSet(forceRecompute);
 
     //
     // Parse and scrape league source files

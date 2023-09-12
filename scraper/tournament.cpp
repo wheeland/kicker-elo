@@ -61,7 +61,7 @@ void scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutpu
         //
         // check for the header element that contains the tournament details
         //
-        GumboElement *root = getFirstElement(output->root, [](GumboElement *elem) {
+        root = getFirstElement(output->root, [](GumboElement *elem) {
             return elem->tag == GUMBO_TAG_DIV && attributeValue(elem, "id") == "right_sidebar";
         });
         REQUIRE(root, "Didn't find root div elem");

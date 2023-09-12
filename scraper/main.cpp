@@ -66,9 +66,9 @@ int main(int argc, char **argv)
     parser.addOption(tournamentSeasonOption);
     QCommandLineOption tournamentSourceOption({"tournament-source", "s"}, "What website to query tournaments from (dtfb, tfvb)", "source", "tfvb");
     parser.addOption(tournamentSourceOption);
-    QCommandLineOption kLeagueOption(QStringList{"kleague"}, "k-factor used for league games", "k", "20");
+    QCommandLineOption kLeagueOption(QStringList{"kleague"}, "k-factor used for 2-set league games (1-set games count half)", "k", "20");
     parser.addOption(kLeagueOption);
-    QCommandLineOption kTournamentOption(QStringList{"ktournament"}, "k-factor used for league games", "k", "30");
+    QCommandLineOption kTournamentOption(QStringList{"ktournament"}, "k-factor used for tournament games (mini-challengers count half)", "k", "30");
     parser.addOption(kTournamentOption);
     QCommandLineOption forceRecompute(QStringList{{"recompute", "r"}}, "Force recomputation of ELO");
     parser.addOption(forceRecompute);

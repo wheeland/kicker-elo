@@ -420,7 +420,10 @@ void Database::recompute()
         const float result = (match.score1 > match.score2) ? 0.0f :
                              (match.score1 < match.score2) ? 1.0f : 0.5f;
         const bool isTournament = (m_competitions[match.competition].type == CompetitionType::Tournament);
-        const float k = isTournament ? m_kTournament : m_kLeague;
+        const bool isMiniTournament = isTournament && m_competitions[match.competition].name.contains("Mini");
+        const bool isSingleSetGame = (qMax(match.score1, match.score2) >= 5);
+        const float ratingFactor = (isMiniTournament || isSingleSetGame) ? 0.5f : 1.0f;
+        const float k = ratingFactor * (isTournament ? m_kTournament : m_kLeague);
 
         if (match.type == MatchType::Single) {
             const int pm1id = addPlayedMatch(match.p1, match.id);

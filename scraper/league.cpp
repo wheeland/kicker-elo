@@ -54,7 +54,7 @@ bool scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
     // check for match date
     //
     const auto isPotentialDate = [](GumboElement *elem) {
-        return elem->tag == GUMBO_TAG_TABLE && attributeValue(elem, "class") == "contentpaneopen";
+        return elem->tag == GUMBO_TAG_TABLE && attributeValue(elem, "class").contains("contentpaneopen");
     };
     for (GumboElement *elem : collectElements(output->root, isPotentialDate)) {
         const QStringList texts = collectTexts(elem);

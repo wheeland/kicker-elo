@@ -27,7 +27,7 @@ QVector<LeagueGame> scrapeLeagueSeason(GumboOutput *output)
     return ret;
 }
 
-void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
+bool scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
 {
     #define CHECK(condition, message) if (!(condition)) { qWarning() << "League game" << tfvbId << ":" << message; continue; }
 
@@ -83,10 +83,11 @@ void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
     }
     if (competitionDateTime.isNull()) {
         qWarning() << "Invalid match date";
-        return;
+        return false;
     }
 
     const int competitionId = db->addCompetition(tfvbId, CompetitionType::League, competitionName, competitionDateTime);
+    bool addedGames = false;
 
     //
     // collect root-level match elements
@@ -145,11 +146,17 @@ void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output)
             db->addPlayer(playerIds[i], playerFirstNames[i], playerLastNames[i]);
         }
 
-        if (playerLinks.size() == 2)
+        if (playerLinks.size() == 2) {
             db->addMatch(competitionId, pos, score1, score2, playerIds[0], playerIds[1]);
-        else if (playerLinks.size() == 4)
+            addedGames = true;
+        }
+        else if (playerLinks.size() == 4) {
             db->addMatch(competitionId, pos, score1, score2, playerIds[0], playerIds[1], playerIds[2], playerIds[3]);
+            addedGames = true;
+        }
     }
 
     #undef CHECK
+    
+    return addedGames;
 }

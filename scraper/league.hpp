@@ -10,4 +10,4 @@ struct LeagueGame
 };
 QVector<LeagueGame> scrapeLeagueSeason(GumboOutput *output);
 
-void scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output);
+bool scrapeLeageGame(Database *db, int tfvbId, GumboOutput *output);

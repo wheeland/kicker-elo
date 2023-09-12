@@ -48,14 +48,15 @@ QVector<Tournament> scrapeTournamentPage(GumboOutput *output)
     return ret;
 }
 
-void scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutput *output)
+bool scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutput *output)
 {
-    #define REQUIRE(condition, message) if (!(condition)) { qWarning() << "Tournament" << tfvbId << ":" << message; return; }
+    #define REQUIRE(condition, message) if (!(condition)) { qWarning() << "Tournament" << tfvbId << ":" << message; return false; }
     #define CHECK(condition, message) if (!(condition)) { qWarning() << "Tournament" << tfvbId << ":" << message; continue; }
 
     QDateTime competitionDateTime;
     QString competitionName;
     GumboElement *root = nullptr;
+    bool addedGames = false;
 
     if (src == TFVB) {
         //
@@ -192,11 +193,16 @@ void scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutpu
         if (!allFound)
             continue;
 
-        if (ids.size() == 2)
+        if (ids.size() == 2) {
             db->addMatch(competitionId, pos++, 1, 0, ids[0], ids[1]);
-        else if (ids.size() == 4)
+            addedGames = true;
+        }
+        else if (ids.size() == 4) {
             db->addMatch(competitionId, pos++, 1, 0, ids[0], ids[1], ids[2], ids[3]);
+            addedGames = true;
+        }
     }
 
     REQUIRE(pos > 0, "Didn't add any games from tournament");
+    return addedGames;
 }

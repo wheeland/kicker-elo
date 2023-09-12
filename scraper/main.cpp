@@ -62,9 +62,9 @@ int main(int argc, char **argv)
     parser.addPositionalArgument("sqlite", "Path to SQLite database");
     QCommandLineOption leagueSourcesOption({"league-sources", "l"}, "Sources for league games", "path");
     parser.addOption(leagueSourcesOption);
-    QCommandLineOption tournamentSeasonOption({"tournament-season", "t"}, "Season to query for tournaments (1-15)", "", "");
+    QCommandLineOption tournamentSeasonOption({"tournament-season", "t"}, "Season to query for tournaments (1-15)", "season", "15");
     parser.addOption(tournamentSeasonOption);
-    QCommandLineOption tournamentSourceOption({"tournament-source", "s"}, "What website to query tournaments from (dtfb, tfvb)", "", "");
+    QCommandLineOption tournamentSourceOption({"tournament-source", "s"}, "What website to query tournaments from (dtfb, tfvb)", "source", "tfvb");
     parser.addOption(tournamentSourceOption);
     QCommandLineOption kLeagueOption(QStringList{"kleague"}, "k-factor used for league games", "k", "20");
     parser.addOption(kLeagueOption);

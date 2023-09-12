@@ -99,7 +99,7 @@ bool scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutpu
         // check for the header element that contains the tournament details
         //
         GumboElement *header = getFirstElement(output->root, [](GumboElement *elem) {
-            return elem->tag == GUMBO_TAG_TABLE && attributeValue(elem, "class") == "contentpaneopen_tsl";
+            return elem->tag == GUMBO_TAG_TABLE && attributeValue(elem, "class") == "uk-table contentpaneopen";
         });
         REQUIRE(header, "Didn't find root table elem");
 
@@ -127,6 +127,7 @@ bool scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutpu
         competitionName = headerTexts[1];
 
         root = parentElem(header);
+        root = root ? parentElem(root) : nullptr;
     }
     else {
         qFatal("invalid tournament source");

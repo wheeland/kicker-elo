@@ -141,7 +141,7 @@ int main(int argc, char **argv)
         QUrl url;
         if (tournamentSourceValue == "dtfb") {
             tournamentSource = DTFB;
-            url = "https://dtfb.de/index.php/turnierergebnisse";
+            url = "https://dtfb.de/wettbewerbe/turnierserie/turnierergebnisse";
         }
         else if (tournamentSourceValue == "tfvb") {
             tournamentSource = TFVB;
@@ -154,7 +154,13 @@ int main(int argc, char **argv)
 
         QNetworkRequest request(url);
         const QString prefix = url.scheme() + "://" + url.host();
-        QNetworkCookie cookie("sportsmanager_filter_saison_id", QByteArray::number(season));
+        
+        QNetworkCookie cookie;
+        cookie.setName("sportsmanager_filter_saison_id");
+        cookie.setValue(QByteArray::number(season));
+        cookie.setPath("/wettbewerbe/turnierserie");
+        cookie.setHttpOnly(false);
+        cookie.setSecure(false);
         QList<QNetworkCookie> cookies{cookie};
         request.setHeader(QNetworkRequest::CookieHeader, QVariant::fromValue(cookies));
 

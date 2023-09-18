@@ -45,6 +45,11 @@ void Downloader::onReplyFinished()
     const DownloadCallback cb = *it;
     m_activeDownloads.erase(it);
 
+    if (reply->error() != QNetworkReply::NoError) {
+        qWarning() << reply->url() << reply->error() << reply->errorString();
+        return;
+    }
+
     const QNetworkReply::NetworkError error = reply->error();
     const QByteArray data = reply->readAll();
 

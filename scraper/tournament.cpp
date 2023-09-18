@@ -1,6 +1,8 @@
 #include "tournament.hpp"
 #include "scrapeutil.hpp"
 
+#include <QDebug>
+
 using namespace ScrapeUtil;
 
 static GumboNode *node(GumboElement *elem)

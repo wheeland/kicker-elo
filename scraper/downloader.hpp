@@ -3,6 +3,8 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
+#include <functional>
+
 #include "gumbo.h"
 
 using DownloadCallback = std::function<void(QNetworkReply::NetworkError, GumboOutput*)>;

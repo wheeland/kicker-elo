@@ -58,7 +58,6 @@ int scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutput
     QDateTime competitionDateTime;
     QString competitionName;
     GumboElement *root = nullptr;
-    int addedGames = 0;
 
     if (src == TFVB) {
         //

@@ -109,12 +109,12 @@ int main(int argc, char **argv)
                 const QString fullUrl = prepend(game.url, prefix);
 
                 if (count > 0) {
-                    qDebug() << "Skipping" << game.tfvbId << fullUrl << "(from" << source << "): has" << count << "matches already";
+                    qDebug() << "Skipping" << game.tfvbId << "(from" << source << "): has" << count << "matches already";
                     continue;
                 }
 
                 downloader->request(QNetworkRequest(fullUrl), [=, &recomputeElo](QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
-                    qDebug() << "Scraping" << game.tfvbId << fullUrl << "(from" << source << ")";
+                    qDebug() << "Scraping" << game.tfvbId << "(from" << source << ")";
                     recomputeElo |= scrapeLeageGame(database, game.tfvbId, out);
                 });
             }
@@ -183,8 +183,13 @@ int main(int argc, char **argv)
                         }
 
                         downloader->request(QNetworkRequest(fullTournamentUrl), [=, &recomputeElo](QNetworkReply::NetworkError /*err*/, GumboOutput *out) {
-                            qDebug() << "Scraping" << tnm.tfvbId << fullTournamentUrl << "(from season" << season << ")";
-                            recomputeElo |= scrapeTournament(database, tnm.tfvbId, tournamentSource, out);
+                            const int count = scrapeTournament(database, tnm.tfvbId, tournamentSource, out);
+                            if (count > 0) {
+                                qDebug() << "Scraping" << tnm.tfvbId << fullTournamentUrl << "(from season" << season << "):" << count << "games added";
+                                recomputeElo = true;
+                            } else {
+                                qDebug() << "Scraping" << tnm.tfvbId << fullTournamentUrl << "(from season" << season << "): no games";
+                            }
                         });
                     }
                 });

@@ -17,4 +17,4 @@ enum TournamentSource {
     DTFB
 };
 
-bool scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutput *output);
+int scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutput *output);

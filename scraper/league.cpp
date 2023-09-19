@@ -9,12 +9,20 @@ QVector<LeagueGame> scrapeLeagueSeason(GumboOutput *output)
 {
     QVector<LeagueGame> ret;
     QVector<int> doneIds;
+    QVector<int> liveGameIds;
 
     for (GumboElement *elem : collectElements(output->root, GUMBO_TAG_A)) {
         QString href = QString::fromUtf8(attributeValue(elem, "href"));
 
         if (href.contains("begegnung_spielplan")) {
             const int id = href.split("&id=").last().toInt();
+            
+            // don't parse live games
+            GumboElement *parent = parentElement(elem);
+            if (parent && collectTexts(parent).contains("live")) {
+                qWarning() << "Skipping live game" << id;
+                liveGameIds << id;
+            }
 
             if (doneIds.contains(id))
                 continue;
@@ -23,6 +31,13 @@ QVector<LeagueGame> scrapeLeagueSeason(GumboOutput *output)
             doneIds << id;
         }
     }
+    
+    for (auto it = ret.begin(); it != ret.end(); /*empty*/) {
+        if (liveGameIds.contains(it->tfvbId))
+            it = ret.erase(it);
+        else
+            ++it;
+    }   
 
     return ret;
 }

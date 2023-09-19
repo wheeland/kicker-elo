@@ -5,21 +5,6 @@
 
 using namespace ScrapeUtil;
 
-static GumboNode *node(GumboElement *elem)
-{
-    const intptr_t ofs = offsetof(GumboNode, v.element);
-    return (GumboNode*) ((intptr_t) elem - ofs);
-}
-
-static GumboElement *parentElem(GumboElement *elem)
-{
-    for (GumboNode *n = node(elem)->parent; n; n = n->parent) {
-        if (n->type == GUMBO_NODE_ELEMENT)
-            return &n->v.element;
-    }
-    return nullptr;
-}
-
 QStringList scrapeTournamentOverview(GumboOutput *output)
 {
     QStringList ret;
@@ -127,8 +112,8 @@ int scrapeTournament(Database *db, int tfvbId, TournamentSource src, GumboOutput
         competitionDateTime = QDateTime(QDate(year, mon, day), QTime(hour, min, 0));
         competitionName = headerTexts[1];
 
-        root = parentElem(header);
-        root = root ? parentElem(root) : nullptr;
+        root = parentElement(header);
+        root = root ? parentElement(root) : nullptr;
     }
     else {
         qFatal("invalid tournament source");

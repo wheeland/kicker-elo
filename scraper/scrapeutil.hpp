@@ -11,6 +11,8 @@ namespace ScrapeUtil
 
 using NodeFilter = std::function<bool(GumboElement*)>;
 
+GumboElement *parentElement(GumboElement *elem);
+
 GumboElement* getFirstElement(GumboNode *node, const NodeFilter &filter);
 GumboElement* getFirstElement(GumboElement *elem, const NodeFilter &filter);
 

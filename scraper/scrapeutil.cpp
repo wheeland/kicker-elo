@@ -8,6 +8,21 @@
 
 namespace ScrapeUtil
 {
+    
+static GumboNode *node(GumboElement *elem)
+{
+    const intptr_t ofs = offsetof(GumboNode, v.element);
+    return (GumboNode*) ((intptr_t) elem - ofs);
+}
+
+GumboElement *parentElement(GumboElement *elem)
+{
+    for (GumboNode *n = node(elem)->parent; n; n = n->parent) {
+        if (n->type == GUMBO_NODE_ELEMENT)
+            return &n->v.element;
+    }
+    return nullptr;
+}
 
 GumboElement *getFirstElement(GumboNode *node, const NodeFilter &filter)
 {

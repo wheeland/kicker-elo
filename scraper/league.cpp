@@ -18,10 +18,15 @@ QVector<LeagueGame> scrapeLeagueSeason(GumboOutput *output)
             const int id = href.split("&id=").last().toInt();
             
             // don't parse live games
-            GumboElement *parent = parentElement(elem);
-            if (parent && collectTexts(parent).contains("live")) {
-                qWarning() << "Skipping live game" << id;
-                liveGameIds << id;
+            if (GumboElement *parent = parentElement(elem)) {
+                bool isLive = false;
+                for (const QString &text : collectTexts(parent)) {
+                    isLive |= (text == "live" || text.contains("unbest"));
+                }
+                if (isLive) {
+                    qWarning() << "Skipping live game" << id;
+                    liveGameIds << id;
+                }
             }
 
             if (doneIds.contains(id))
